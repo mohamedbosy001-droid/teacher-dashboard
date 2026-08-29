@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "dars-khososy"
+  },
+  "targets": {
+    "dars-khososy": {
+      "hosting": {
+        "teacher-dashboard": [
+          "omar-teacher-dashboard"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
