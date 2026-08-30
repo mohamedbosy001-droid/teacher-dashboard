@@ -1,8 +1,13 @@
 import { useState } from "react";
+
 import {
   signInWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence,
 } from "firebase/auth";
+
 import { useNavigate } from "react-router-dom";
+
 import {
   FaChalkboardTeacher,
   FaEnvelope,
@@ -36,25 +41,55 @@ function Login() {
   async function handleLogin(event) {
     event.preventDefault();
 
-    const cleanEmail = email.trim();
+    const cleanEmail =
+      email.trim().toLowerCase();
 
     if (!cleanEmail || !password) {
       setMessage(
         "من فضلك اكتب البريد الإلكتروني وكلمة المرور."
       );
+
       setMessageType("error");
       return;
     }
 
     setIsLoading(true);
-    setMessage("جاري تسجيل الدخول...");
+    setMessage(
+      "جاري تسجيل الدخول..."
+    );
     setMessageType("pending");
 
     try {
-      await signInWithEmailAndPassword(
+      await setPersistence(
         auth,
-        cleanEmail,
-        password
+        browserLocalPersistence
+      );
+
+      const userCredential =
+        await signInWithEmailAndPassword(
+          auth,
+          cleanEmail,
+          password
+        );
+
+      console.log(
+        "LOGIN USER EMAIL:",
+        userCredential.user.email
+      );
+
+      console.log(
+        "LOGIN USER UID:",
+        userCredential.user.uid
+      );
+
+      console.log(
+        "AUTH CURRENT USER EMAIL:",
+        auth.currentUser?.email
+      );
+
+      console.log(
+        "AUTH CURRENT USER UID:",
+        auth.currentUser?.uid
       );
 
       setMessage("");
@@ -85,9 +120,13 @@ function Login() {
         </div>
 
         <div className="teacher-login-heading">
-          <span>منصة درس خصوصي</span>
+          <span>
+            منصة درس خصوصي
+          </span>
 
-          <h1>تسجيل دخول المدرس</h1>
+          <h1>
+            تسجيل دخول المدرس
+          </h1>
 
           <p>
             أدخل بيانات حساب الإدارة للوصول إلى
@@ -111,7 +150,10 @@ function Login() {
               type="email"
               value={email}
               onChange={(event) => {
-                setEmail(event.target.value);
+                setEmail(
+                  event.target.value
+                );
+
                 setMessage("");
                 setMessageType("");
               }}
@@ -139,6 +181,7 @@ function Login() {
                 setPassword(
                   event.target.value
                 );
+
                 setMessage("");
                 setMessageType("");
               }}
