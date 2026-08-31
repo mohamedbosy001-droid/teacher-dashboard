@@ -40,7 +40,7 @@ import "./App.css";
 
 /*
   =========================================================
-  واجبات المنصة الموجودة بالفعل داخل كود منصة الطالب
+  واجبات المنصة
   =========================================================
 */
 
@@ -70,17 +70,14 @@ const initialHomeworkData = {
 function Homeworks() {
   const navigate = useNavigate();
 
-  const [firestoreHomeworks, setFirestoreHomeworks] =
-    useState([]);
+  const [
+    firestoreHomeworks,
+    setFirestoreHomeworks,
+  ] = useState([]);
 
-  const [courses, setCourses] =
-    useState([]);
-
-  const [lessons, setLessons] =
-    useState([]);
-
-  const [students, setStudents] =
-    useState([]);
+  const [courses, setCourses] = useState([]);
+  const [lessons, setLessons] = useState([]);
+  const [students, setStudents] = useState([]);
 
   const [activeTab, setActiveTab] =
     useState("students");
@@ -262,7 +259,7 @@ function Homeworks() {
 
   /*
     =========================================================
-    دمج واجبات المنصة مع واجبات Firestore
+    دمج واجبات المنصة مع Firestore
     =========================================================
   */
 
@@ -337,9 +334,7 @@ function Homeworks() {
       return lesson.title;
     }
 
-    if (
-      lessonId === "lesson-1"
-    ) {
+    if (lessonId === "lesson-1") {
       return "المحاضرة الأولى";
     }
 
@@ -368,7 +363,7 @@ function Homeworks() {
 
   /*
     =========================================================
-    الواجبات المناسبة للسنة المختارة
+    الواجبات المناسبة للسنة
     =========================================================
   */
 
@@ -380,22 +375,16 @@ function Homeworks() {
             return true;
           }
 
-          /*
-            لو الواجب محدد له سنة
-            نظهره فقط للسنة دي
-          */
-
           if (homework.grade) {
             return (
-              homework.grade ===
-              selectedGrade
+              normalizeText(
+                homework.grade
+              ) ===
+              normalizeText(
+                selectedGrade
+              )
             );
           }
-
-          /*
-            الواجبات القديمة اللي
-            مفيهاش grade نخليها ظاهرة
-          */
 
           return true;
         }
@@ -405,15 +394,8 @@ function Homeworks() {
       selectedGrade,
     ]);
 
-  /*
-    لو غيرنا السنة والواجب الحالي
-    مش تابع لها، نشيل اختياره
-  */
-
   useEffect(() => {
-    if (
-      !selectedHomeworkId
-    ) {
+    if (!selectedHomeworkId) {
       return;
     }
 
@@ -434,47 +416,31 @@ function Homeworks() {
 
   /*
     =========================================================
-    Progress
+    البحث الحقيقي عن الواجب داخل بيانات الطالب
     =========================================================
   */
 
-  function getLessonProgress(
+  function getHomeworkTracking(
     student,
     homework
   ) {
-    if (
-      !student ||
-      !homework
-    ) {
-      return {};
+    if (!student || !homework) {
+      return {
+        courseId:
+          homework?.courseId || "",
+        lessonId:
+          homework?.lessonId || "",
+        lessonProgress: {},
+        result: null,
+      };
     }
 
-    return (
-      student
-        ?.courseProgress?.[
-        homework.courseId
-      ]?.lessons?.[
-        homework.lessonId
-      ] || {}
-    );
-  }
-
-  /*
-    =========================================================
-    البحث عن نتيجة الواجب
-    =========================================================
-  */
-
-  function getHomeworkResult(
-    student,
-    homework
-  ) {
-    if (
-      !student ||
-      !homework
-    ) {
-      return null;
-    }
+    const courseProgress =
+      student.courseProgress &&
+      typeof student.courseProgress ===
+        "object"
+        ? student.courseProgress
+        : {};
 
     const results =
       Array.isArray(
@@ -484,50 +450,297 @@ function Homeworks() {
         : [];
 
     /*
-      1- المطابقة بـ homeworkId
+      ==========================================
+      أولاً:
+      البحث داخل homeworkResults
+      باستخدام homeworkId
+      ==========================================
     */
 
-    const byHomeworkId =
+    const exactResult =
       [...results]
         .reverse()
         .find((result) => {
+          if (!result) {
+            return false;
+          }
+
           return (
-            result?.homeworkId ===
+            result.homeworkId ===
               homework.id ||
-            result?.id ===
+            result.id ===
               homework.id
           );
         });
 
-    if (byHomeworkId) {
-      return byHomeworkId;
+    if (exactResult) {
+      const resultCourseId =
+        exactResult.courseId ||
+        exactResult.courseID ||
+        homework.courseId ||
+        "";
+
+      const resultLessonId =
+        exactResult.lessonId ||
+        exactResult.lessonID ||
+        homework.lessonId ||
+        "";
+
+      const lessonProgress =
+        courseProgress?.[
+          resultCourseId
+        ]?.lessons?.[
+          resultLessonId
+        ] || {};
+
+      return {
+        courseId:
+          resultCourseId,
+        lessonId:
+          resultLessonId,
+        lessonProgress,
+        result: exactResult,
+      };
     }
 
     /*
-      2- المطابقة بالكورس والمحاضرة
+      ==========================================
+      ثانياً:
+      ندور على homeworkId داخل كل
+      courseProgress
+      ==========================================
     */
 
-    const byCourseAndLesson =
+    for (const [
+      courseId,
+      courseData,
+    ] of Object.entries(
+      courseProgress
+    )) {
+      const lessonMap =
+        courseData?.lessons &&
+        typeof courseData.lessons ===
+          "object"
+          ? courseData.lessons
+          : {};
+
+      for (const [
+        lessonId,
+        lessonProgress,
+      ] of Object.entries(
+        lessonMap
+      )) {
+        if (
+          lessonProgress?.homeworkId ===
+          homework.id
+        ) {
+          const matchingResult =
+            [...results]
+              .reverse()
+              .find(
+                (result) =>
+                  result?.homeworkId ===
+                    homework.id ||
+                  (
+                    result?.courseId ===
+                      courseId &&
+                    result?.lessonId ===
+                      lessonId
+                  )
+              ) || null;
+
+          return {
+            courseId,
+            lessonId,
+            lessonProgress:
+              lessonProgress || {},
+            result:
+              matchingResult,
+          };
+        }
+      }
+    }
+
+    /*
+      ==========================================
+      ثالثاً:
+      courseId + lessonId
+      ==========================================
+    */
+
+    const normalLessonProgress =
+      courseProgress?.[
+        homework.courseId
+      ]?.lessons?.[
+        homework.lessonId
+      ] || {};
+
+    const normalResult =
       [...results]
         .reverse()
         .find((result) => {
+          if (!result) {
+            return false;
+          }
+
+          const resultCourseId =
+            result.courseId ||
+            result.courseID ||
+            "";
+
+          const resultLessonId =
+            result.lessonId ||
+            result.lessonID ||
+            "";
+
           return (
-            result?.courseId ===
+            resultCourseId ===
               homework.courseId &&
-            result?.lessonId ===
+            resultLessonId ===
               homework.lessonId
           );
-        });
+        }) || null;
 
-    return (
-      byCourseAndLesson ||
-      null
-    );
+    if (
+      Object.keys(
+        normalLessonProgress
+      ).length > 0 ||
+      normalResult
+    ) {
+      return {
+        courseId:
+          homework.courseId,
+        lessonId:
+          homework.lessonId,
+        lessonProgress:
+          normalLessonProgress,
+        result:
+          normalResult,
+      };
+    }
+
+    /*
+      ==========================================
+      رابعاً:
+      دعم البيانات القديمة باسم الواجب
+      ==========================================
+    */
+
+    for (const [
+      courseId,
+      courseData,
+    ] of Object.entries(
+      courseProgress
+    )) {
+      const lessonMap =
+        courseData?.lessons &&
+        typeof courseData.lessons ===
+          "object"
+          ? courseData.lessons
+          : {};
+
+      for (const [
+        lessonId,
+        lessonProgress,
+      ] of Object.entries(
+        lessonMap
+      )) {
+        const sameTitle =
+          normalizeText(
+            lessonProgress?.homeworkTitle
+          ) ===
+          normalizeText(
+            homework.title
+          );
+
+        if (sameTitle) {
+          return {
+            courseId,
+            lessonId,
+            lessonProgress:
+              lessonProgress || {},
+            result: null,
+          };
+        }
+      }
+    }
+
+    /*
+      ==========================================
+      خامساً:
+      لو فيه نتيجة بتقول إنها متسلمة
+      لنفس المحاضرة حتى لو الـ ID قديم
+      ==========================================
+    */
+
+    const possibleResult =
+      [...results]
+        .reverse()
+        .find((result) => {
+          if (!result) {
+            return false;
+          }
+
+          const isSubmitted =
+            result.submitted ===
+              true ||
+            result.completed ===
+              true ||
+            result.homeworkSubmitted ===
+              true;
+
+          if (!isSubmitted) {
+            return false;
+          }
+
+          const resultLessonId =
+            result.lessonId ||
+            result.lessonID ||
+            "";
+
+          const resultCourseId =
+            result.courseId ||
+            result.courseID ||
+            "";
+
+          return (
+            resultLessonId ===
+              homework.lessonId &&
+            (
+              resultCourseId ===
+                homework.courseId ||
+              !resultCourseId
+            )
+          );
+        }) || null;
+
+    if (possibleResult) {
+      return {
+        courseId:
+          possibleResult.courseId ||
+          homework.courseId,
+        lessonId:
+          possibleResult.lessonId ||
+          homework.lessonId,
+        lessonProgress: {},
+        result:
+          possibleResult,
+      };
+    }
+
+    return {
+      courseId:
+        homework.courseId,
+      lessonId:
+        homework.lessonId,
+      lessonProgress: {},
+      result: null,
+    };
   }
 
   /*
     =========================================================
-    حالة الطالب في الواجب
+    حالة الطالب
     =========================================================
   */
 
@@ -535,34 +748,35 @@ function Homeworks() {
     student,
     homework
   ) {
-    if (
-      !student ||
-      !homework
-    ) {
+    if (!student || !homework) {
       return {
         submitted: false,
         score: null,
         totalScore: null,
         percentage: null,
         result: null,
+        lessonProgress: {},
+        actualCourseId: "",
+        actualLessonId: "",
       };
     }
 
-    const lessonProgress =
-      getLessonProgress(
+    const tracking =
+      getHomeworkTracking(
         student,
         homework
       );
+
+    const lessonProgress =
+      tracking.lessonProgress ||
+      {};
 
     const result =
-      getHomeworkResult(
-        student,
-        homework
-      );
+      tracking.result || null;
 
     /*
-      بنفحص أكتر من اسم
-      علشان نتوافق مع البيانات القديمة
+      نفس العلامات اللي منصة الطالب
+      بتحفظها عند التسليم
     */
 
     const submitted =
@@ -572,16 +786,15 @@ function Homeworks() {
         true ||
       lessonProgress.homeworkDone ===
         true ||
+      lessonProgress.homeworkSolutionUnlocked ===
+        true ||
       result?.submitted === true ||
       result?.completed === true ||
       result?.homeworkSubmitted ===
-        true ||
-      result?.isSubmitted === true ||
-      Boolean(result);
+        true;
 
     const score =
       lessonProgress.homeworkScore ??
-      lessonProgress.score ??
       result?.score ??
       result?.studentScore ??
       result?.correctAnswers ??
@@ -589,9 +802,8 @@ function Homeworks() {
 
     const totalScore =
       lessonProgress.homeworkTotal ??
-      lessonProgress.totalScore ??
-      result?.totalScore ??
       result?.total ??
+      result?.totalScore ??
       homework.totalScore ??
       null;
 
@@ -621,6 +833,14 @@ function Homeworks() {
       percentage,
       result,
       lessonProgress,
+
+      actualCourseId:
+        tracking.courseId ||
+        homework.courseId,
+
+      actualLessonId:
+        tracking.lessonId ||
+        homework.lessonId,
     };
   }
 
@@ -701,8 +921,12 @@ function Homeworks() {
 
           const matchesGrade =
             !selectedGrade ||
-            student.grade ===
-              selectedGrade;
+            normalizeText(
+              student.grade
+            ) ===
+              normalizeText(
+                selectedGrade
+              );
 
           return (
             matchesSearch &&
@@ -729,7 +953,7 @@ function Homeworks() {
 
   /*
     =========================================================
-    إحصائيات
+    الإحصائيات
     =========================================================
   */
 
@@ -739,9 +963,7 @@ function Homeworks() {
         return {
           total:
             visibleStudents.length,
-
           submitted: 0,
-
           notSubmitted:
             visibleStudents.length,
         };
@@ -822,10 +1044,18 @@ function Homeworks() {
     );
 
     try {
+      const actualCourseId =
+        info.actualCourseId ||
+        selectedHomework.courseId;
+
+      const actualLessonId =
+        info.actualLessonId ||
+        selectedHomework.lessonId;
+
       /*
-        -----------------------------------
-        ننسخ courseProgress كله
-        -----------------------------------
+        ==========================================
+        ننسخ تقدم الطالب بالكامل
+        ==========================================
       */
 
       const courseProgress = {
@@ -835,7 +1065,7 @@ function Homeworks() {
 
       const currentCourse = {
         ...(courseProgress[
-          selectedHomework.courseId
+          actualCourseId
         ] || {}),
       };
 
@@ -844,23 +1074,28 @@ function Homeworks() {
           {}),
       };
 
-      const currentLesson = {
+      const currentLessonProgress = {
         ...(courseLessons[
-          selectedHomework.lessonId
+          actualLessonId
         ] || {}),
       };
 
       /*
-        -----------------------------------
+        ==========================================
         نصفر بيانات الواجب فقط
-        ولا نلمس تقدم الفيديو
-        -----------------------------------
+
+        بنحافظ على:
+        مشاهدة الفيديو
+        نسبة المشاهدة
+        تقدم المحاضرة
+        تقدم الكورس
+        ==========================================
       */
 
       courseLessons[
-        selectedHomework.lessonId
+        actualLessonId
       ] = {
-        ...currentLesson,
+        ...currentLessonProgress,
 
         homeworkSubmitted:
           false,
@@ -872,6 +1107,9 @@ function Homeworks() {
           false,
 
         isHomeworkSubmitted:
+          false,
+
+        homeworkSolutionUnlocked:
           false,
 
         homeworkScore:
@@ -886,8 +1124,11 @@ function Homeworks() {
         homeworkSubmittedAt:
           null,
 
-        homeworkSolutionUnlocked:
-          false,
+        homeworkId:
+          null,
+
+        homeworkTitle:
+          null,
 
         homeworkReopenedByTeacher:
           true,
@@ -900,14 +1141,13 @@ function Homeworks() {
         courseLessons;
 
       courseProgress[
-        selectedHomework.courseId
+        actualCourseId
       ] = currentCourse;
 
       /*
-        -----------------------------------
-        نشيل النتيجة الحالية
-        لهذا الواجب فقط
-        -----------------------------------
+        ==========================================
+        نشيل نتيجة الواجب فقط
+        ==========================================
       */
 
       const oldResults =
@@ -924,31 +1164,39 @@ function Homeworks() {
               return true;
             }
 
-            const sameId =
+            const resultCourseId =
+              result.courseId ||
+              result.courseID ||
+              "";
+
+            const resultLessonId =
+              result.lessonId ||
+              result.lessonID ||
+              "";
+
+            const sameHomeworkId =
               result.homeworkId ===
                 selectedHomework.id ||
               result.id ===
                 selectedHomework.id;
 
-            const sameCourseAndLesson =
-              result.courseId ===
-                selectedHomework.courseId &&
-              result.lessonId ===
-                selectedHomework.lessonId;
+            const sameLocation =
+              resultCourseId ===
+                actualCourseId &&
+              resultLessonId ===
+                actualLessonId;
 
             return !(
-              sameId ||
-              sameCourseAndLesson
+              sameHomeworkId ||
+              sameLocation
             );
           }
         );
 
       const updateData = {
         courseProgress,
-
         homeworkResults:
           newResults,
-
         updatedAt:
           serverTimestamp(),
       };
@@ -999,7 +1247,7 @@ function Homeworks() {
 
   /*
     =========================================================
-    الواجبات في تبويب الإدارة
+    الواجبات في الإدارة
     =========================================================
   */
 
@@ -1101,12 +1349,6 @@ function Homeworks() {
   function openEditHomeworkForm(
     homework
   ) {
-    /*
-      واجبات المنصة الأصلية
-      تعديلها بيتم من كود المنصة
-      مش Firestore
-    */
-
     if (
       homework.isPlatformHomework
     ) {
