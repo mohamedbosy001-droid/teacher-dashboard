@@ -38,6 +38,25 @@ import {
 import { db } from "./firebase";
 import "./App.css";
 
+/*
+  =========================================================
+  واجبات المنصة الموجودة بالفعل داخل كود منصة الطالب
+  =========================================================
+*/
+
+const platformHomeworks = [
+  {
+    id: "third-month-lesson-1-homework",
+    title: "واجب المحاضرة الأولى",
+    courseId: "third-month-course",
+    lessonId: "lesson-1",
+    grade: "الثالث الثانوي",
+    totalScore: 30,
+    isPublished: true,
+    isPlatformHomework: true,
+  },
+];
+
 const initialHomeworkData = {
   title: "",
   description: "",
@@ -51,7 +70,7 @@ const initialHomeworkData = {
 function Homeworks() {
   const navigate = useNavigate();
 
-  const [homeworks, setHomeworks] =
+  const [firestoreHomeworks, setFirestoreHomeworks] =
     useState([]);
 
   const [courses, setCourses] =
@@ -63,20 +82,8 @@ function Homeworks() {
   const [students, setStudents] =
     useState([]);
 
-  /*
-    ===============================
-    التبويب الحالي
-    ===============================
-  */
-
   const [activeTab, setActiveTab] =
     useState("students");
-
-  /*
-    ===============================
-    البحث في الواجبات
-    ===============================
-  */
 
   const [searchText, setSearchText] =
     useState("");
@@ -85,12 +92,6 @@ function Homeworks() {
     selectedCourseId,
     setSelectedCourseId,
   ] = useState("");
-
-  /*
-    ===============================
-    متابعة الطلاب
-    ===============================
-  */
 
   const [
     studentSearchText,
@@ -111,12 +112,6 @@ function Homeworks() {
     reopeningStudentId,
     setReopeningStudentId,
   ] = useState("");
-
-  /*
-    ===============================
-    فورم الواجب
-    ===============================
-  */
 
   const [
     showHomeworkForm,
@@ -143,30 +138,39 @@ function Homeworks() {
     useState("");
 
   /*
-    ===============================
+    =========================================================
     تحميل البيانات
-    ===============================
+    =========================================================
   */
 
   useEffect(() => {
     const unsubscribeHomeworks =
       onSnapshot(
         collection(db, "homeworks"),
+
         (snapshot) => {
           const homeworksData =
             snapshot.docs.map(
               (homeworkDocument) => ({
                 id: homeworkDocument.id,
                 ...homeworkDocument.data(),
+                isPlatformHomework: false,
               })
             );
 
-          setHomeworks(homeworksData);
+          setFirestoreHomeworks(
+            homeworksData
+          );
+
           setIsLoading(false);
           setMessage("");
         },
+
         (error) => {
-          console.error(error);
+          console.error(
+            "Homeworks error:",
+            error
+          );
 
           setMessage(
             "حدث خطأ أثناء تحميل الواجبات."
@@ -179,6 +183,7 @@ function Homeworks() {
     const unsubscribeCourses =
       onSnapshot(
         collection(db, "courses"),
+
         (snapshot) => {
           const coursesData =
             snapshot.docs.map(
@@ -189,12 +194,20 @@ function Homeworks() {
             );
 
           setCourses(coursesData);
+        },
+
+        (error) => {
+          console.error(
+            "Courses error:",
+            error
+          );
         }
       );
 
     const unsubscribeLessons =
       onSnapshot(
         collection(db, "lessons"),
+
         (snapshot) => {
           const lessonsData =
             snapshot.docs.map(
@@ -205,12 +218,20 @@ function Homeworks() {
             );
 
           setLessons(lessonsData);
+        },
+
+        (error) => {
+          console.error(
+            "Lessons error:",
+            error
+          );
         }
       );
 
     const unsubscribeStudents =
       onSnapshot(
         collection(db, "students"),
+
         (snapshot) => {
           const studentsData =
             snapshot.docs.map(
@@ -222,8 +243,12 @@ function Homeworks() {
 
           setStudents(studentsData);
         },
+
         (error) => {
-          console.error(error);
+          console.error(
+            "Students error:",
+            error
+          );
         }
       );
 
@@ -236,9 +261,42 @@ function Homeworks() {
   }, []);
 
   /*
-    ===============================
+    =========================================================
+    دمج واجبات المنصة مع واجبات Firestore
+    =========================================================
+  */
+
+  const homeworks =
+    useMemo(() => {
+      const map = new Map();
+
+      platformHomeworks.forEach(
+        (homework) => {
+          map.set(
+            homework.id,
+            homework
+          );
+        }
+      );
+
+      firestoreHomeworks.forEach(
+        (homework) => {
+          map.set(
+            homework.id,
+            homework
+          );
+        }
+      );
+
+      return Array.from(
+        map.values()
+      );
+    }, [firestoreHomeworks]);
+
+  /*
+    =========================================================
     Helpers
-    ===============================
+    =========================================================
   */
 
   function normalizeText(value) {
@@ -248,31 +306,50 @@ function Homeworks() {
   }
 
   function getCourseTitle(courseId) {
-    const course = courses.find(
-      (item) => item.id === courseId
-    );
+    const course =
+      courses.find(
+        (item) =>
+          item.id === courseId
+      );
 
-    return (
-      course?.title ||
-      "كورس غير محدد"
-    );
+    if (course?.title) {
+      return course.title;
+    }
+
+    if (
+      courseId ===
+      "third-month-course"
+    ) {
+      return "كورس الشهر الثالث الثانوي";
+    }
+
+    return "كورس غير محدد";
   }
 
   function getLessonTitle(lessonId) {
-    const lesson = lessons.find(
-      (item) => item.id === lessonId
-    );
+    const lesson =
+      lessons.find(
+        (item) =>
+          item.id === lessonId
+      );
 
-    return (
-      lesson?.title ||
-      "محاضرة غير محددة"
-    );
+    if (lesson?.title) {
+      return lesson.title;
+    }
+
+    if (
+      lessonId === "lesson-1"
+    ) {
+      return "المحاضرة الأولى";
+    }
+
+    return "محاضرة غير محددة";
   }
 
   /*
-    ===============================
-    الواجب المختار لمتابعة الطلاب
-    ===============================
+    =========================================================
+    الواجب المختار
+    =========================================================
   */
 
   const selectedHomework =
@@ -290,21 +367,91 @@ function Homeworks() {
     ]);
 
   /*
-    ===============================
-    استخراج بيانات تقدم الواجب
-    ===============================
+    =========================================================
+    الواجبات المناسبة للسنة المختارة
+    =========================================================
+  */
+
+  const studentHomeworkOptions =
+    useMemo(() => {
+      return homeworks.filter(
+        (homework) => {
+          if (!selectedGrade) {
+            return true;
+          }
+
+          /*
+            لو الواجب محدد له سنة
+            نظهره فقط للسنة دي
+          */
+
+          if (homework.grade) {
+            return (
+              homework.grade ===
+              selectedGrade
+            );
+          }
+
+          /*
+            الواجبات القديمة اللي
+            مفيهاش grade نخليها ظاهرة
+          */
+
+          return true;
+        }
+      );
+    }, [
+      homeworks,
+      selectedGrade,
+    ]);
+
+  /*
+    لو غيرنا السنة والواجب الحالي
+    مش تابع لها، نشيل اختياره
+  */
+
+  useEffect(() => {
+    if (
+      !selectedHomeworkId
+    ) {
+      return;
+    }
+
+    const exists =
+      studentHomeworkOptions.some(
+        (homework) =>
+          homework.id ===
+          selectedHomeworkId
+      );
+
+    if (!exists) {
+      setSelectedHomeworkId("");
+    }
+  }, [
+    studentHomeworkOptions,
+    selectedHomeworkId,
+  ]);
+
+  /*
+    =========================================================
+    Progress
+    =========================================================
   */
 
   function getLessonProgress(
     student,
     homework
   ) {
-    if (!student || !homework) {
+    if (
+      !student ||
+      !homework
+    ) {
       return {};
     }
 
     return (
-      student?.courseProgress?.[
+      student
+        ?.courseProgress?.[
         homework.courseId
       ]?.lessons?.[
         homework.lessonId
@@ -313,16 +460,19 @@ function Homeworks() {
   }
 
   /*
-    ===============================
+    =========================================================
     البحث عن نتيجة الواجب
-    ===============================
+    =========================================================
   */
 
   function getHomeworkResult(
     student,
     homework
   ) {
-    if (!student || !homework) {
+    if (
+      !student ||
+      !homework
+    ) {
       return null;
     }
 
@@ -334,58 +484,67 @@ function Homeworks() {
         : [];
 
     /*
-      نحاول الأول نجيب نفس homeworkId
+      1- المطابقة بـ homeworkId
     */
 
-    const resultByHomeworkId =
-      results
-        .slice()
+    const byHomeworkId =
+      [...results]
         .reverse()
-        .find(
-          (result) =>
+        .find((result) => {
+          return (
             result?.homeworkId ===
-            homework.id
-        );
+              homework.id ||
+            result?.id ===
+              homework.id
+          );
+        });
 
-    if (resultByHomeworkId) {
-      return resultByHomeworkId;
+    if (byHomeworkId) {
+      return byHomeworkId;
     }
 
     /*
-      لو البيانات القديمة مفيهاش homeworkId
-      نطابق بالكورس والمحاضرة
+      2- المطابقة بالكورس والمحاضرة
     */
 
-    return (
-      results
-        .slice()
+    const byCourseAndLesson =
+      [...results]
         .reverse()
-        .find(
-          (result) =>
+        .find((result) => {
+          return (
             result?.courseId ===
               homework.courseId &&
             result?.lessonId ===
               homework.lessonId
-        ) || null
+          );
+        });
+
+    return (
+      byCourseAndLesson ||
+      null
     );
   }
 
   /*
-    ===============================
-    هل الطالب سلم الواجب؟
-    ===============================
+    =========================================================
+    حالة الطالب في الواجب
+    =========================================================
   */
 
   function getStudentHomeworkInfo(
     student,
     homework
   ) {
-    if (!student || !homework) {
+    if (
+      !student ||
+      !homework
+    ) {
       return {
         submitted: false,
         score: null,
         totalScore: null,
         percentage: null,
+        result: null,
       };
     }
 
@@ -401,6 +560,11 @@ function Homeworks() {
         homework
       );
 
+    /*
+      بنفحص أكتر من اسم
+      علشان نتوافق مع البيانات القديمة
+    */
+
     const submitted =
       lessonProgress.homeworkSubmitted ===
         true ||
@@ -412,10 +576,12 @@ function Homeworks() {
       result?.completed === true ||
       result?.homeworkSubmitted ===
         true ||
+      result?.isSubmitted === true ||
       Boolean(result);
 
     const score =
       lessonProgress.homeworkScore ??
+      lessonProgress.score ??
       result?.score ??
       result?.studentScore ??
       result?.correctAnswers ??
@@ -423,6 +589,7 @@ function Homeworks() {
 
     const totalScore =
       lessonProgress.homeworkTotal ??
+      lessonProgress.totalScore ??
       result?.totalScore ??
       result?.total ??
       homework.totalScore ??
@@ -439,11 +606,12 @@ function Homeworks() {
       totalScore !== null &&
       Number(totalScore) > 0
     ) {
-      percentage = Math.round(
-        (Number(score) /
-          Number(totalScore)) *
-          100
-      );
+      percentage =
+        Math.round(
+          (Number(score) /
+            Number(totalScore)) *
+            100
+        );
     }
 
     return {
@@ -457,14 +625,14 @@ function Homeworks() {
   }
 
   /*
-    ===============================
-    السنوات الموجودة
-    ===============================
+    =========================================================
+    السنوات
+    =========================================================
   */
 
   const grades =
     useMemo(() => {
-      const values =
+      const studentGrades =
         students
           .map(
             (student) =>
@@ -472,15 +640,26 @@ function Homeworks() {
           )
           .filter(Boolean);
 
+      const homeworkGrades =
+        platformHomeworks
+          .map(
+            (homework) =>
+              homework.grade
+          )
+          .filter(Boolean);
+
       return [
-        ...new Set(values),
+        ...new Set([
+          ...studentGrades,
+          ...homeworkGrades,
+        ]),
       ];
     }, [students]);
 
   /*
-    ===============================
+    =========================================================
     الطلاب الظاهرين
-    ===============================
+    =========================================================
   */
 
   const visibleStudents =
@@ -508,9 +687,6 @@ function Homeworks() {
               student.parentPhone
             );
 
-          const grade =
-            student.grade || "";
-
           const matchesSearch =
             !searchValue ||
             name.includes(
@@ -525,7 +701,7 @@ function Homeworks() {
 
           const matchesGrade =
             !selectedGrade ||
-            grade ===
+            student.grade ===
               selectedGrade;
 
           return (
@@ -533,15 +709,17 @@ function Homeworks() {
             matchesGrade
           );
         })
-        .sort((first, second) =>
-          String(
-            first.fullName || ""
-          ).localeCompare(
+
+        .sort(
+          (first, second) =>
             String(
-              second.fullName || ""
-            ),
-            "ar"
-          )
+              first.fullName || ""
+            ).localeCompare(
+              String(
+                second.fullName || ""
+              ),
+              "ar"
+            )
         );
     }, [
       students,
@@ -550,9 +728,9 @@ function Homeworks() {
     ]);
 
   /*
-    ===============================
-    إحصائيات الواجب
-    ===============================
+    =========================================================
+    إحصائيات
+    =========================================================
   */
 
   const homeworkStatistics =
@@ -561,13 +739,15 @@ function Homeworks() {
         return {
           total:
             visibleStudents.length,
+
           submitted: 0,
+
           notSubmitted:
             visibleStudents.length,
         };
       }
 
-      let submittedCount = 0;
+      let submitted = 0;
 
       visibleStudents.forEach(
         (student) => {
@@ -578,7 +758,7 @@ function Homeworks() {
             );
 
           if (info.submitted) {
-            submittedCount += 1;
+            submitted += 1;
           }
         }
       );
@@ -587,12 +767,11 @@ function Homeworks() {
         total:
           visibleStudents.length,
 
-        submitted:
-          submittedCount,
+        submitted,
 
         notSubmitted:
           visibleStudents.length -
-          submittedCount,
+          submitted,
       };
     }, [
       visibleStudents,
@@ -600,9 +779,9 @@ function Homeworks() {
     ]);
 
   /*
-    ===============================
+    =========================================================
     إعادة فتح الواجب
-    ===============================
+    =========================================================
   */
 
   async function reopenHomeworkForStudent(
@@ -631,7 +810,7 @@ function Homeworks() {
 
     const confirmed =
       window.confirm(
-        `هل أنتِ متأكدة من إعادة فتح الواجب "${selectedHomework.title}" للطالب "${student.fullName || "الطالب"}"؟`
+        `هل أنتِ متأكدة من إعادة فتح "${selectedHomework.title}" للطالب "${student.fullName || "الطالب"}"؟`
       );
 
     if (!confirmed) {
@@ -644,8 +823,9 @@ function Homeworks() {
 
     try {
       /*
-        ننسخ courseProgress الحالي بالكامل
-        علشان منلمسش باقي الكورسات
+        -----------------------------------
+        ننسخ courseProgress كله
+        -----------------------------------
       */
 
       const courseProgress = {
@@ -653,45 +833,34 @@ function Homeworks() {
           {}),
       };
 
-      /*
-        ننسخ الكورس فقط
-      */
-
-      const currentCourseProgress = {
+      const currentCourse = {
         ...(courseProgress[
           selectedHomework.courseId
         ] || {}),
       };
 
-      /*
-        ننسخ المحاضرات فقط
-      */
-
       const courseLessons = {
-        ...(currentCourseProgress.lessons ||
+        ...(currentCourse.lessons ||
           {}),
       };
 
-      /*
-        ننسخ المحاضرة الحالية فقط
-      */
-
-      const currentLessonProgress = {
+      const currentLesson = {
         ...(courseLessons[
           selectedHomework.lessonId
         ] || {}),
       };
 
       /*
-        نصفر فقط بيانات الواجب
-        ونترك الفيديو وباقي تقدم المحاضرة
-        كما هو
+        -----------------------------------
+        نصفر بيانات الواجب فقط
+        ولا نلمس تقدم الفيديو
+        -----------------------------------
       */
 
       courseLessons[
         selectedHomework.lessonId
       ] = {
-        ...currentLessonProgress,
+        ...currentLesson,
 
         homeworkSubmitted:
           false,
@@ -700,6 +869,9 @@ function Homeworks() {
           false,
 
         homeworkDone:
+          false,
+
+        isHomeworkSubmitted:
           false,
 
         homeworkScore:
@@ -722,26 +894,20 @@ function Homeworks() {
 
         homeworkReopenedAt:
           new Date(),
-
-        homeworkAttemptNumber:
-          Number(
-            currentLessonProgress.homeworkAttemptNumber ||
-              1
-          ) + 1,
       };
 
-      currentCourseProgress.lessons =
+      currentCourse.lessons =
         courseLessons;
 
       courseProgress[
         selectedHomework.courseId
-      ] = currentCourseProgress;
+      ] = currentCourse;
 
       /*
-        نشيل نتيجة الواجب الحالي
-        من homeworkResults فقط
-        علشان المنصة تعتبره
-        غير مسلم وتسمحله يحله تاني
+        -----------------------------------
+        نشيل النتيجة الحالية
+        لهذا الواجب فقط
+        -----------------------------------
       */
 
       const oldResults =
@@ -758,36 +924,21 @@ function Homeworks() {
               return true;
             }
 
-            /*
-              لو النتيجة فيها homeworkId
-            */
+            const sameId =
+              result.homeworkId ===
+                selectedHomework.id ||
+              result.id ===
+                selectedHomework.id;
 
-            if (
-              result.homeworkId
-            ) {
-              return (
-                result.homeworkId !==
-                selectedHomework.id
-              );
-            }
-
-            /*
-              لو نتيجة قديمة
-              ومفيهاش homeworkId
-              نطابق بالكورس والمحاضرة
-            */
-
-            const sameCourse =
+            const sameCourseAndLesson =
               result.courseId ===
-              selectedHomework.courseId;
-
-            const sameLesson =
+                selectedHomework.courseId &&
               result.lessonId ===
-              selectedHomework.lessonId;
+                selectedHomework.lessonId;
 
             return !(
-              sameCourse &&
-              sameLesson
+              sameId ||
+              sameCourseAndLesson
             );
           }
         );
@@ -803,9 +954,7 @@ function Homeworks() {
       };
 
       /*
-        لو عندنا عداد للواجبات المكتملة
-        نقلله واحد علشان لما يسلم تاني
-        العداد مايزدش مرتين.
+        لو عندنا عداد واجبات مكتملة
       */
 
       if (
@@ -849,27 +998,27 @@ function Homeworks() {
   }
 
   /*
-    ===============================
-    الواجبات الظاهرة في الإدارة
-    ===============================
+    =========================================================
+    الواجبات في تبويب الإدارة
+    =========================================================
   */
 
   const visibleHomeworks =
     useMemo(() => {
       const searchValue =
-        searchText
-          .trim()
-          .toLowerCase();
+        normalizeText(
+          searchText
+        );
 
       return homeworks.filter(
         (homework) => {
           const matchesSearch =
             !searchValue ||
-            homework.title
-              ?.toLowerCase()
-              .includes(
-                searchValue
-              );
+            normalizeText(
+              homework.title
+            ).includes(
+              searchValue
+            );
 
           const matchesCourse =
             !selectedCourseId ||
@@ -888,12 +1037,6 @@ function Homeworks() {
       selectedCourseId,
     ]);
 
-  /*
-    ===============================
-    المحاضرات المتاحة
-    ===============================
-  */
-
   const availableLessons =
     lessons.filter(
       (lesson) =>
@@ -903,9 +1046,9 @@ function Homeworks() {
     );
 
   /*
-    ===============================
-    تغيير بيانات الفورم
-    ===============================
+    =========================================================
+    الفورم
+    =========================================================
   */
 
   function handleHomeworkChange(
@@ -922,6 +1065,7 @@ function Homeworks() {
       (previousData) => {
         const updatedData = {
           ...previousData,
+
           [name]:
             type === "checkbox"
               ? checked
@@ -942,12 +1086,6 @@ function Homeworks() {
     setMessage("");
   }
 
-  /*
-    ===============================
-    فتح إضافة واجب
-    ===============================
-  */
-
   function openAddHomeworkForm() {
     setEditingHomeworkId(null);
 
@@ -956,18 +1094,29 @@ function Homeworks() {
     );
 
     setMessage("");
+
     setShowHomeworkForm(true);
   }
-
-  /*
-    ===============================
-    فتح تعديل واجب
-    ===============================
-  */
 
   function openEditHomeworkForm(
     homework
   ) {
+    /*
+      واجبات المنصة الأصلية
+      تعديلها بيتم من كود المنصة
+      مش Firestore
+    */
+
+    if (
+      homework.isPlatformHomework
+    ) {
+      window.alert(
+        "ده واجب موجود داخل كود منصة الطالب، وتعديله بيتم من ملف homeworkData في المنصة."
+      );
+
+      return;
+    }
+
     setEditingHomeworkId(
       homework.id
     );
@@ -977,8 +1126,7 @@ function Homeworks() {
         homework.title || "",
 
       description:
-        homework.description ||
-        "",
+        homework.description || "",
 
       courseId:
         homework.courseId || "",
@@ -987,8 +1135,7 @@ function Homeworks() {
         homework.lessonId || "",
 
       submissionUrl:
-        homework.submissionUrl ||
-        "",
+        homework.submissionUrl || "",
 
       totalScore:
         homework.totalScore ===
@@ -1004,17 +1151,13 @@ function Homeworks() {
     });
 
     setMessage("");
+
     setShowHomeworkForm(true);
   }
 
-  /*
-    ===============================
-    إغلاق الفورم
-    ===============================
-  */
-
   function closeHomeworkForm() {
     setShowHomeworkForm(false);
+
     setEditingHomeworkId(null);
 
     setHomeworkData(
@@ -1023,12 +1166,6 @@ function Homeworks() {
 
     setMessage("");
   }
-
-  /*
-    ===============================
-    حفظ الواجب
-    ===============================
-  */
 
   async function handleHomeworkSubmit(
     event
@@ -1050,9 +1187,10 @@ function Homeworks() {
       return;
     }
 
-    const totalScore = Number(
-      homeworkData.totalScore
-    );
+    const totalScore =
+      Number(
+        homeworkData.totalScore
+      );
 
     if (
       Number.isNaN(totalScore) ||
@@ -1068,17 +1206,19 @@ function Homeworks() {
     setIsSaving(true);
     setMessage("");
 
-    const course = courses.find(
-      (item) =>
-        item.id ===
-        homeworkData.courseId
-    );
+    const course =
+      courses.find(
+        (item) =>
+          item.id ===
+          homeworkData.courseId
+      );
 
-    const lesson = lessons.find(
-      (item) =>
-        item.id ===
-        homeworkData.lessonId
-    );
+    const lesson =
+      lessons.find(
+        (item) =>
+          item.id ===
+          homeworkData.lessonId
+      );
 
     const homeworkToSave = {
       title:
@@ -1151,14 +1291,24 @@ function Homeworks() {
   }
 
   /*
-    ===============================
-    إظهار / إخفاء
-    ===============================
+    =========================================================
+    إظهار وإخفاء
+    =========================================================
   */
 
   async function toggleHomeworkVisibility(
     homework
   ) {
+    if (
+      homework.isPlatformHomework
+    ) {
+      window.alert(
+        "ده واجب منصة أساسي، إظهاره أو إخفاؤه بيتم من كود منصة الطالب."
+      );
+
+      return;
+    }
+
     try {
       await updateDoc(
         doc(
@@ -1185,14 +1335,24 @@ function Homeworks() {
   }
 
   /*
-    ===============================
-    حذف واجب
-    ===============================
+    =========================================================
+    حذف
+    =========================================================
   */
 
   async function handleDeleteHomework(
     homework
   ) {
+    if (
+      homework.isPlatformHomework
+    ) {
+      window.alert(
+        "ده واجب موجود داخل منصة الطالب، مينفعش يتحذف من الداشبورد."
+      );
+
+      return;
+    }
+
     const confirmed =
       window.confirm(
         `هل أنتِ متأكدة من حذف الواجب "${homework.title}"؟`
@@ -1220,9 +1380,9 @@ function Homeworks() {
   }
 
   /*
-    ===============================
-    شكل حالة التسليم
-    ===============================
+    =========================================================
+    شكل الحالة
+    =========================================================
   */
 
   function getStudentStatusStyle(
@@ -1230,69 +1390,35 @@ function Homeworks() {
   ) {
     if (submitted) {
       return {
-        display:
-          "inline-flex",
-
-        alignItems:
-          "center",
-
-        gap:
-          "6px",
-
-        padding:
-          "7px 12px",
-
-        borderRadius:
-          "20px",
-
-        background:
-          "#e7f8ee",
-
-        color:
-          "#147347",
-
-        fontWeight:
-          "700",
-
-        whiteSpace:
-          "nowrap",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "7px 12px",
+        borderRadius: "20px",
+        background: "#e7f8ee",
+        color: "#147347",
+        fontWeight: "700",
+        whiteSpace: "nowrap",
       };
     }
 
     return {
-      display:
-        "inline-flex",
-
-      alignItems:
-        "center",
-
-      gap:
-        "6px",
-
-      padding:
-        "7px 12px",
-
-      borderRadius:
-        "20px",
-
-      background:
-        "#fdeaea",
-
-      color:
-        "#b33131",
-
-      fontWeight:
-        "700",
-
-      whiteSpace:
-        "nowrap",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "7px 12px",
+      borderRadius: "20px",
+      background: "#fdeaea",
+      color: "#b33131",
+      fontWeight: "700",
+      whiteSpace: "nowrap",
     };
   }
 
   /*
-    ===============================
+    =========================================================
     الصفحة
-    ===============================
+    =========================================================
   */
 
   return (
@@ -1350,9 +1476,7 @@ function Homeworks() {
           </div>
         </header>
 
-        {/* ===============================
-            التبويبات
-        =============================== */}
+        {/* TABS */}
 
         <section
           style={{
@@ -1365,8 +1489,7 @@ function Homeworks() {
           <button
             type="button"
             className={
-              activeTab ===
-              "students"
+              activeTab === "students"
                 ? "admin-primary-btn"
                 : "admin-secondary-btn"
             }
@@ -1383,8 +1506,7 @@ function Homeworks() {
           <button
             type="button"
             className={
-              activeTab ===
-              "homeworks"
+              activeTab === "homeworks"
                 ? "admin-primary-btn"
                 : "admin-secondary-btn"
             }
@@ -1399,16 +1521,14 @@ function Homeworks() {
           </button>
         </section>
 
-        {/* ===============================
+        {/* =================================================
             متابعة الطلاب
-        =============================== */}
+        ================================================= */}
 
         {activeTab ===
           "students" && (
           <>
             <section className="admin-toolbar">
-
-              {/* بحث الطالب */}
 
               <div className="admin-search-box">
                 <FaSearch />
@@ -1422,15 +1542,12 @@ function Homeworks() {
                     event
                   ) =>
                     setStudentSearchText(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                   placeholder="ابحثي باسم الطالب أو رقم التليفون..."
                 />
               </div>
-
-              {/* السنة */}
 
               <div className="admin-filter-box">
                 <FaUserGraduate />
@@ -1443,8 +1560,7 @@ function Homeworks() {
                     event
                   ) =>
                     setSelectedGrade(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                 >
@@ -1465,8 +1581,6 @@ function Homeworks() {
                 </select>
               </div>
 
-              {/* اختيار الواجب */}
-
               <div className="admin-filter-box">
                 <FaClipboardCheck />
 
@@ -1478,8 +1592,7 @@ function Homeworks() {
                     event
                   ) =>
                     setSelectedHomeworkId(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                 >
@@ -1487,7 +1600,7 @@ function Homeworks() {
                     اختاري الواجب
                   </option>
 
-                  {homeworks.map(
+                  {studentHomeworkOptions.map(
                     (homework) => (
                       <option
                         key={
@@ -1497,9 +1610,7 @@ function Homeworks() {
                           homework.id
                         }
                       >
-                        {
-                          homework.title
-                        }
+                        {homework.title}
                       </option>
                     )
                   )}
@@ -1515,8 +1626,7 @@ function Homeworks() {
                 gridTemplateColumns:
                   "repeat(auto-fit, minmax(170px, 1fr))",
                 gap: "15px",
-                margin:
-                  "20px 0 25px",
+                margin: "20px 0 25px",
               }}
             >
               <div className="admin-total-box">
@@ -1525,9 +1635,7 @@ function Homeworks() {
                 </span>
 
                 <strong>
-                  {
-                    homeworkStatistics.total
-                  }
+                  {homeworkStatistics.total}
                 </strong>
               </div>
 
@@ -1538,13 +1646,10 @@ function Homeworks() {
 
                 <strong
                   style={{
-                    color:
-                      "#168754",
+                    color: "#168754",
                   }}
                 >
-                  {
-                    homeworkStatistics.submitted
-                  }
+                  {homeworkStatistics.submitted}
                 </strong>
               </div>
 
@@ -1555,13 +1660,10 @@ function Homeworks() {
 
                 <strong
                   style={{
-                    color:
-                      "#c43838",
+                    color: "#c43838",
                   }}
                 >
-                  {
-                    homeworkStatistics.notSubmitted
-                  }
+                  {homeworkStatistics.notSubmitted}
                 </strong>
               </div>
             </section>
@@ -1577,10 +1679,9 @@ function Homeworks() {
                 </h2>
 
                 <p>
-                  اختاري الواجب من
-                  الأعلى علشان يظهرلك
-                  كل الطلاب وحالة
-                  التسليم.
+                  اختاري السنة ثم الواجب
+                  علشان تشوفي حالة كل
+                  طالب.
                 </p>
               </section>
             ) : visibleStudents.length ===
@@ -1593,50 +1694,36 @@ function Homeworks() {
                 <h2>
                   لا يوجد طلاب
                 </h2>
-
-                <p>
-                  لا يوجد طلاب مطابقين
-                  للبحث أو السنة
-                  المختارة.
-                </p>
               </section>
             ) : (
               <>
-                {/* بيانات الواجب */}
-
                 <div
                   style={{
-                    padding:
-                      "16px 20px",
-
-                    marginBottom:
-                      "20px",
-
-                    background:
-                      "#ffffff",
-
+                    padding: "16px 20px",
+                    marginBottom: "20px",
+                    background: "#ffffff",
                     border:
                       "1px solid #ececec",
-
-                    borderRadius:
-                      "14px",
+                    borderRadius: "14px",
                   }}
                 >
                   <strong>
-                    {
-                      selectedHomework.title
-                    }
+                    {selectedHomework.title}
                   </strong>
 
                   <div
                     style={{
-                      marginTop:
-                        "6px",
-
-                      opacity:
-                        "0.75",
+                      marginTop: "6px",
+                      opacity: "0.75",
                     }}
                   >
+                    {selectedHomework.grade ||
+                      ""}
+
+                    {selectedHomework.grade
+                      ? " — "
+                      : ""}
+
                     {getCourseTitle(
                       selectedHomework.courseId
                     )}
@@ -1649,35 +1736,16 @@ function Homeworks() {
                   </div>
                 </div>
 
-                {/* جدول الطلاب */}
-
                 <section className="admin-table-wrapper">
                   <table className="admin-table">
                     <thead>
                       <tr>
-                        <th>
-                          الطالب
-                        </th>
-
-                        <th>
-                          السنة
-                        </th>
-
-                        <th>
-                          رقم الطالب
-                        </th>
-
-                        <th>
-                          الحالة
-                        </th>
-
-                        <th>
-                          الدرجة
-                        </th>
-
-                        <th>
-                          إعادة فتح
-                        </th>
+                        <th>الطالب</th>
+                        <th>السنة</th>
+                        <th>رقم الطالب</th>
+                        <th>الحالة</th>
+                        <th>الدرجة</th>
+                        <th>إعادة فتح</th>
                       </tr>
                     </thead>
 
@@ -1739,9 +1807,7 @@ function Homeworks() {
                                 info.score !==
                                   null ? (
                                   <strong>
-                                    {
-                                      info.score
-                                    }
+                                    {info.score}
 
                                     {" / "}
 
@@ -1792,9 +1858,9 @@ function Homeworks() {
           </>
         )}
 
-        {/* ===============================
-            إدارة الواجبات الأصلية
-        =============================== */}
+        {/* =================================================
+            إدارة الواجبات
+        ================================================= */}
 
         {activeTab ===
           "homeworks" && (
@@ -1805,15 +1871,12 @@ function Homeworks() {
 
                 <input
                   type="search"
-                  value={
-                    searchText
-                  }
+                  value={searchText}
                   onChange={(
                     event
                   ) =>
                     setSearchText(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                   placeholder="ابحثي باسم الواجب..."
@@ -1831,8 +1894,7 @@ function Homeworks() {
                     event
                   ) =>
                     setSelectedCourseId(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                 >
@@ -1843,16 +1905,10 @@ function Homeworks() {
                   {courses.map(
                     (course) => (
                       <option
-                        key={
-                          course.id
-                        }
-                        value={
-                          course.id
-                        }
+                        key={course.id}
+                        value={course.id}
                       >
-                        {
-                          course.title
-                        }
+                        {course.title}
                       </option>
                     )
                   )}
@@ -1865,9 +1921,7 @@ function Homeworks() {
                 </span>
 
                 <strong>
-                  {
-                    homeworks.length
-                  }
+                  {homeworks.length}
                 </strong>
               </div>
             </section>
@@ -1882,8 +1936,7 @@ function Homeworks() {
             {isLoading ? (
               <section className="admin-data-empty">
                 <h2>
-                  جاري تحميل
-                  الواجبات...
+                  جاري تحميل الواجبات...
                 </h2>
               </section>
             ) : visibleHomeworks.length ===
@@ -1894,54 +1947,21 @@ function Homeworks() {
                 </div>
 
                 <h2>
-                  لا توجد واجبات حتى
-                  الآن
+                  لا توجد واجبات
                 </h2>
-
-                <p>
-                  أضيفي أول واجب
-                  واربطِيه بمحاضرة.
-                </p>
-
-                <button
-                  type="button"
-                  className="admin-primary-btn"
-                  onClick={
-                    openAddHomeworkForm
-                  }
-                >
-                  <FaPlus />
-                  إضافة أول واجب
-                </button>
               </section>
             ) : (
               <section className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>
-                        الواجب
-                      </th>
-
-                      <th>
-                        الكورس
-                      </th>
-
-                      <th>
-                        المحاضرة
-                      </th>
-
-                      <th>
-                        الدرجة
-                      </th>
-
-                      <th>
-                        الحالة
-                      </th>
-
-                      <th>
-                        الإجراءات
-                      </th>
+                      <th>الواجب</th>
+                      <th>السنة</th>
+                      <th>الكورس</th>
+                      <th>المحاضرة</th>
+                      <th>الدرجة</th>
+                      <th>الحالة</th>
+                      <th>الإجراءات</th>
                     </tr>
                   </thead>
 
@@ -1955,10 +1975,28 @@ function Homeworks() {
                         >
                           <td>
                             <strong>
-                              {
-                                homework.title
-                              }
+                              {homework.title}
                             </strong>
+
+                            {homework.isPlatformHomework && (
+                              <div
+                                style={{
+                                  fontSize:
+                                    "12px",
+                                  marginTop:
+                                    "4px",
+                                  opacity:
+                                    "0.65",
+                                }}
+                              >
+                                واجب المنصة
+                              </div>
+                            )}
+                          </td>
+
+                          <td>
+                            {homework.grade ||
+                              "—"}
                           </td>
 
                           <td>
@@ -1974,9 +2012,8 @@ function Homeworks() {
                           </td>
 
                           <td>
-                            {
-                              homework.totalScore
-                            }
+                            {homework.totalScore ??
+                              "—"}
                           </td>
 
                           <td>
@@ -1995,45 +2032,65 @@ function Homeworks() {
 
                           <td>
                             <div className="admin-table-actions">
-                              <button
-                                type="button"
-                                className="admin-icon-btn view"
-                                onClick={() =>
-                                  toggleHomeworkVisibility(
-                                    homework
-                                  )
-                                }
-                              >
-                                {homework.isPublished ? (
-                                  <FaEyeSlash />
-                                ) : (
-                                  <FaEye />
-                                )}
-                              </button>
 
-                              <button
-                                type="button"
-                                className="admin-icon-btn edit"
-                                onClick={() =>
-                                  openEditHomeworkForm(
-                                    homework
-                                  )
-                                }
-                              >
-                                <FaEdit />
-                              </button>
+                              {!homework.isPlatformHomework && (
+                                <button
+                                  type="button"
+                                  className="admin-icon-btn view"
+                                  onClick={() =>
+                                    toggleHomeworkVisibility(
+                                      homework
+                                    )
+                                  }
+                                >
+                                  {homework.isPublished ? (
+                                    <FaEyeSlash />
+                                  ) : (
+                                    <FaEye />
+                                  )}
+                                </button>
+                              )}
 
-                              <button
-                                type="button"
-                                className="admin-icon-btn delete"
-                                onClick={() =>
-                                  handleDeleteHomework(
-                                    homework
-                                  )
-                                }
-                              >
-                                <FaTrash />
-                              </button>
+                              {!homework.isPlatformHomework && (
+                                <button
+                                  type="button"
+                                  className="admin-icon-btn edit"
+                                  onClick={() =>
+                                    openEditHomeworkForm(
+                                      homework
+                                    )
+                                  }
+                                >
+                                  <FaEdit />
+                                </button>
+                              )}
+
+                              {!homework.isPlatformHomework && (
+                                <button
+                                  type="button"
+                                  className="admin-icon-btn delete"
+                                  onClick={() =>
+                                    handleDeleteHomework(
+                                      homework
+                                    )
+                                  }
+                                >
+                                  <FaTrash />
+                                </button>
+                              )}
+
+                              {homework.isPlatformHomework && (
+                                <span
+                                  style={{
+                                    fontSize:
+                                      "13px",
+                                    opacity:
+                                      "0.7",
+                                  }}
+                                >
+                                  من المنصة
+                                </span>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -2047,9 +2104,9 @@ function Homeworks() {
         )}
       </div>
 
-      {/* ===============================
-          فورم إضافة / تعديل الواجب
-      =============================== */}
+      {/* =================================================
+          إضافة / تعديل
+      ================================================= */}
 
       {showHomeworkForm && (
         <div className="instructions-overlay">
@@ -2077,6 +2134,7 @@ function Homeworks() {
               }
             >
               <div className="form-grid">
+
                 <div className="form-field full-width-field">
                   <input
                     type="text"
@@ -2122,16 +2180,10 @@ function Homeworks() {
                     {courses.map(
                       (course) => (
                         <option
-                          key={
-                            course.id
-                          }
-                          value={
-                            course.id
-                          }
+                          key={course.id}
+                          value={course.id}
                         >
-                          {
-                            course.title
-                          }
+                          {course.title}
                         </option>
                       )
                     )}
@@ -2155,16 +2207,10 @@ function Homeworks() {
                     {availableLessons.map(
                       (lesson) => (
                         <option
-                          key={
-                            lesson.id
-                          }
-                          value={
-                            lesson.id
-                          }
+                          key={lesson.id}
+                          value={lesson.id}
                         >
-                          {
-                            lesson.title
-                          }
+                          {lesson.title}
                         </option>
                       )
                     )}
