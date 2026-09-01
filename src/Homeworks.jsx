@@ -42,17 +42,32 @@ import "./App.css";
   =========================================================
   واجبات المنصة
   =========================================================
+
+  id
+  = ID الواجب الحالي في homeworkData
+
+  legacyHomeworkId
+  = ID الواجب الموجود في بيانات الطلاب القديمة
 */
 
 const platformHomeworks = [
   {
     id: "third-month-lesson-1-homework",
+
+    legacyHomeworkId: "homework-1",
+
     title: "واجب المحاضرة الأولى",
+
     courseId: "third-month-course",
+
     lessonId: "lesson-1",
+
     grade: "الثالث الثانوي",
+
     totalScore: 30,
+
     isPublished: true,
+
     isPlatformHomework: true,
   },
 ];
@@ -75,9 +90,14 @@ function Homeworks() {
     setFirestoreHomeworks,
   ] = useState([]);
 
-  const [courses, setCourses] = useState([]);
-  const [lessons, setLessons] = useState([]);
-  const [students, setStudents] = useState([]);
+  const [courses, setCourses] =
+    useState([]);
+
+  const [lessons, setLessons] =
+    useState([]);
+
+  const [students, setStudents] =
+    useState([]);
 
   const [activeTab, setActiveTab] =
     useState("students");
@@ -151,7 +171,9 @@ function Homeworks() {
               (homeworkDocument) => ({
                 id: homeworkDocument.id,
                 ...homeworkDocument.data(),
-                isPlatformHomework: false,
+
+                isPlatformHomework:
+                  false,
               })
             );
 
@@ -259,7 +281,7 @@ function Homeworks() {
 
   /*
     =========================================================
-    دمج واجبات المنصة مع Firestore
+    دمج واجبات المنصة و Firestore
     =========================================================
   */
 
@@ -302,6 +324,31 @@ function Homeworks() {
       .toLowerCase();
   }
 
+  /*
+    كل الـ IDs اللي ممكن الواجب يكون
+    متسجل بيها عند الطالب
+  */
+
+  function getHomeworkIds(homework) {
+    return [
+      homework?.id,
+      homework?.legacyHomeworkId,
+    ].filter(Boolean);
+  }
+
+  function isSameHomeworkId(
+    savedId,
+    homework
+  ) {
+    if (!savedId || !homework) {
+      return false;
+    }
+
+    return getHomeworkIds(
+      homework
+    ).includes(savedId);
+  }
+
   function getCourseTitle(courseId) {
     const course =
       courses.find(
@@ -334,7 +381,9 @@ function Homeworks() {
       return lesson.title;
     }
 
-    if (lessonId === "lesson-1") {
+    if (
+      lessonId === "lesson-1"
+    ) {
       return "المحاضرة الأولى";
     }
 
@@ -416,22 +465,183 @@ function Homeworks() {
 
   /*
     =========================================================
-    البحث الحقيقي عن الواجب داخل بيانات الطالب
+    البحث داخل homeworkAttempts
     =========================================================
   */
 
-  function getHomeworkTracking(
+  function getHomeworkAttempt(
     student,
     homework
   ) {
     if (!student || !homework) {
       return {
+        attempt: null,
+        attemptId: "",
+      };
+    }
+
+    const attempts =
+      student.homeworkAttempts &&
+      typeof student.homeworkAttempts ===
+        "object"
+        ? student.homeworkAttempts
+        : {};
+
+    const homeworkIds =
+      getHomeworkIds(homework);
+
+    /*
+      أولاً:
+      نبحث بمفتاح الـ Map نفسه
+
+      homeworkAttempts.homework-1
+    */
+
+    for (const homeworkId of homeworkIds) {
+      if (attempts[homeworkId]) {
+        return {
+          attempt:
+            attempts[homeworkId],
+
+          attemptId:
+            homeworkId,
+        };
+      }
+    }
+
+    /*
+      ثانياً:
+      لو الـ Map key مختلف
+      نبحث داخل homeworkId الموجود جواه
+    */
+
+    for (const [
+      attemptKey,
+      attemptData,
+    ] of Object.entries(
+      attempts
+    )) {
+      if (
+        isSameHomeworkId(
+          attemptData?.homeworkId,
+          homework
+        )
+      ) {
+        return {
+          attempt:
+            attemptData,
+
+          attemptId:
+            attemptKey,
+        };
+      }
+    }
+
+    return {
+      attempt: null,
+      attemptId: "",
+    };
+  }
+
+  /*
+    =========================================================
+    البحث داخل homeworkResults
+    =========================================================
+  */
+
+  function getHomeworkResult(
+    student,
+    homework
+  ) {
+    if (!student || !homework) {
+      return null;
+    }
+
+    const results =
+      Array.isArray(
+        student.homeworkResults
+      )
+        ? student.homeworkResults
+        : [];
+
+    /*
+      أولاً:
+      homeworkId
+
+      وده اللي موجود بالفعل
+      عند الطالبة ملك:
+      homeworkId = homework-1
+    */
+
+    const byHomeworkId =
+      [...results]
+        .reverse()
+        .find((result) => {
+          if (!result) {
+            return false;
+          }
+
+          return (
+            isSameHomeworkId(
+              result.homeworkId,
+              homework
+            ) ||
+            isSameHomeworkId(
+              result.id,
+              homework
+            )
+          );
+        });
+
+    if (byHomeworkId) {
+      return byHomeworkId;
+    }
+
+    /*
+      ثانياً:
+      دعم البيانات الجديدة
+      اللي فيها courseId و lessonId
+    */
+
+    const byCourseAndLesson =
+      [...results]
+        .reverse()
+        .find((result) => {
+          if (!result) {
+            return false;
+          }
+
+          return (
+            result.courseId ===
+              homework.courseId &&
+            result.lessonId ===
+              homework.lessonId
+          );
+        });
+
+    return (
+      byCourseAndLesson ||
+      null
+    );
+  }
+
+  /*
+    =========================================================
+    Progress
+    =========================================================
+  */
+
+  function getLessonProgress(
+    student,
+    homework
+  ) {
+    if (!student || !homework) {
+      return {
+        progress: {},
         courseId:
           homework?.courseId || "",
         lessonId:
           homework?.lessonId || "",
-        lessonProgress: {},
-        result: null,
       };
     }
 
@@ -442,73 +652,33 @@ function Homeworks() {
         ? student.courseProgress
         : {};
 
-    const results =
-      Array.isArray(
-        student.homeworkResults
-      )
-        ? student.homeworkResults
-        : [];
-
     /*
-      ==========================================
-      أولاً:
-      البحث داخل homeworkResults
-      باستخدام homeworkId
-      ==========================================
+      المكان الطبيعي
     */
 
-    const exactResult =
-      [...results]
-        .reverse()
-        .find((result) => {
-          if (!result) {
-            return false;
-          }
+    const normalProgress =
+      courseProgress?.[
+        homework.courseId
+      ]?.lessons?.[
+        homework.lessonId
+      ];
 
-          return (
-            result.homeworkId ===
-              homework.id ||
-            result.id ===
-              homework.id
-          );
-        });
-
-    if (exactResult) {
-      const resultCourseId =
-        exactResult.courseId ||
-        exactResult.courseID ||
-        homework.courseId ||
-        "";
-
-      const resultLessonId =
-        exactResult.lessonId ||
-        exactResult.lessonID ||
-        homework.lessonId ||
-        "";
-
-      const lessonProgress =
-        courseProgress?.[
-          resultCourseId
-        ]?.lessons?.[
-          resultLessonId
-        ] || {};
-
+    if (normalProgress) {
       return {
+        progress:
+          normalProgress,
+
         courseId:
-          resultCourseId,
+          homework.courseId,
+
         lessonId:
-          resultLessonId,
-        lessonProgress,
-        result: exactResult,
+          homework.lessonId,
       };
     }
 
     /*
-      ==========================================
-      ثانياً:
-      ندور على homeworkId داخل كل
-      courseProgress
-      ==========================================
+      دعم أي بيانات محفوظة
+      باستخدام homeworkId داخل Progress
     */
 
     for (const [
@@ -531,216 +701,37 @@ function Homeworks() {
         lessonMap
       )) {
         if (
-          lessonProgress?.homeworkId ===
-          homework.id
+          isSameHomeworkId(
+            lessonProgress?.homeworkId,
+            homework
+          )
         ) {
-          const matchingResult =
-            [...results]
-              .reverse()
-              .find(
-                (result) =>
-                  result?.homeworkId ===
-                    homework.id ||
-                  (
-                    result?.courseId ===
-                      courseId &&
-                    result?.lessonId ===
-                      lessonId
-                  )
-              ) || null;
-
           return {
-            courseId,
-            lessonId,
-            lessonProgress:
+            progress:
               lessonProgress || {},
-            result:
-              matchingResult,
+
+            courseId,
+
+            lessonId,
           };
         }
       }
-    }
-
-    /*
-      ==========================================
-      ثالثاً:
-      courseId + lessonId
-      ==========================================
-    */
-
-    const normalLessonProgress =
-      courseProgress?.[
-        homework.courseId
-      ]?.lessons?.[
-        homework.lessonId
-      ] || {};
-
-    const normalResult =
-      [...results]
-        .reverse()
-        .find((result) => {
-          if (!result) {
-            return false;
-          }
-
-          const resultCourseId =
-            result.courseId ||
-            result.courseID ||
-            "";
-
-          const resultLessonId =
-            result.lessonId ||
-            result.lessonID ||
-            "";
-
-          return (
-            resultCourseId ===
-              homework.courseId &&
-            resultLessonId ===
-              homework.lessonId
-          );
-        }) || null;
-
-    if (
-      Object.keys(
-        normalLessonProgress
-      ).length > 0 ||
-      normalResult
-    ) {
-      return {
-        courseId:
-          homework.courseId,
-        lessonId:
-          homework.lessonId,
-        lessonProgress:
-          normalLessonProgress,
-        result:
-          normalResult,
-      };
-    }
-
-    /*
-      ==========================================
-      رابعاً:
-      دعم البيانات القديمة باسم الواجب
-      ==========================================
-    */
-
-    for (const [
-      courseId,
-      courseData,
-    ] of Object.entries(
-      courseProgress
-    )) {
-      const lessonMap =
-        courseData?.lessons &&
-        typeof courseData.lessons ===
-          "object"
-          ? courseData.lessons
-          : {};
-
-      for (const [
-        lessonId,
-        lessonProgress,
-      ] of Object.entries(
-        lessonMap
-      )) {
-        const sameTitle =
-          normalizeText(
-            lessonProgress?.homeworkTitle
-          ) ===
-          normalizeText(
-            homework.title
-          );
-
-        if (sameTitle) {
-          return {
-            courseId,
-            lessonId,
-            lessonProgress:
-              lessonProgress || {},
-            result: null,
-          };
-        }
-      }
-    }
-
-    /*
-      ==========================================
-      خامساً:
-      لو فيه نتيجة بتقول إنها متسلمة
-      لنفس المحاضرة حتى لو الـ ID قديم
-      ==========================================
-    */
-
-    const possibleResult =
-      [...results]
-        .reverse()
-        .find((result) => {
-          if (!result) {
-            return false;
-          }
-
-          const isSubmitted =
-            result.submitted ===
-              true ||
-            result.completed ===
-              true ||
-            result.homeworkSubmitted ===
-              true;
-
-          if (!isSubmitted) {
-            return false;
-          }
-
-          const resultLessonId =
-            result.lessonId ||
-            result.lessonID ||
-            "";
-
-          const resultCourseId =
-            result.courseId ||
-            result.courseID ||
-            "";
-
-          return (
-            resultLessonId ===
-              homework.lessonId &&
-            (
-              resultCourseId ===
-                homework.courseId ||
-              !resultCourseId
-            )
-          );
-        }) || null;
-
-    if (possibleResult) {
-      return {
-        courseId:
-          possibleResult.courseId ||
-          homework.courseId,
-        lessonId:
-          possibleResult.lessonId ||
-          homework.lessonId,
-        lessonProgress: {},
-        result:
-          possibleResult,
-      };
     }
 
     return {
+      progress: {},
+
       courseId:
         homework.courseId,
+
       lessonId:
         homework.lessonId,
-      lessonProgress: {},
-      result: null,
     };
   }
 
   /*
     =========================================================
-    حالة الطالب
+    حالة الطالب في الواجب
     =========================================================
   */
 
@@ -755,31 +746,62 @@ function Homeworks() {
         totalScore: null,
         percentage: null,
         result: null,
+        attempt: null,
+        attemptId: "",
         lessonProgress: {},
         actualCourseId: "",
         actualLessonId: "",
       };
     }
 
-    const tracking =
-      getHomeworkTracking(
+    const {
+      attempt,
+      attemptId,
+    } = getHomeworkAttempt(
+      student,
+      homework
+    );
+
+    const result =
+      getHomeworkResult(
+        student,
+        homework
+      );
+
+    const progressData =
+      getLessonProgress(
         student,
         homework
       );
 
     const lessonProgress =
-      tracking.lessonProgress ||
+      progressData.progress ||
       {};
 
-    const result =
-      tracking.result || null;
-
     /*
-      نفس العلامات اللي منصة الطالب
-      بتحفظها عند التسليم
+      =================================================
+      أهم تعديل
+
+      بيانات الطلاب القديمة بتعتبر متسلمة
+      لو:
+
+      homeworkAttempts.homework-1.completed = true
+
+      أو homeworkResults فيه نتيجة
+
+      أو النظام الجديد في courseProgress
+      =================================================
     */
 
     const submitted =
+      attempt?.completed === true ||
+      attempt?.submitted === true ||
+      attempt?.result?.completed ===
+        true ||
+      result?.completed === true ||
+      result?.submitted === true ||
+      result?.homeworkSubmitted ===
+        true ||
       lessonProgress.homeworkSubmitted ===
         true ||
       lessonProgress.homeworkCompleted ===
@@ -787,29 +809,49 @@ function Homeworks() {
       lessonProgress.homeworkDone ===
         true ||
       lessonProgress.homeworkSolutionUnlocked ===
-        true ||
-      result?.submitted === true ||
-      result?.completed === true ||
-      result?.homeworkSubmitted ===
         true;
 
+    /*
+      الدرجة
+
+      في بيانات ملك الدرجة موجودة:
+      homeworkAttempts.homework-1.result.score
+      وكمان homeworkResults[0].score
+    */
+
     const score =
-      lessonProgress.homeworkScore ??
+      attempt?.result?.score ??
+      attempt?.score ??
       result?.score ??
       result?.studentScore ??
       result?.correctAnswers ??
+      lessonProgress.homeworkScore ??
       null;
 
+    /*
+      إجمالي الأسئلة / الدرجة
+    */
+
     const totalScore =
-      lessonProgress.homeworkTotal ??
+      attempt?.result?.totalQuestions ??
+      attempt?.result?.total ??
+      attempt?.totalQuestions ??
+      result?.totalQuestions ??
       result?.total ??
       result?.totalScore ??
+      lessonProgress.homeworkTotal ??
       homework.totalScore ??
       null;
 
+    /*
+      النسبة
+    */
+
     let percentage =
-      lessonProgress.homeworkPercentage ??
+      attempt?.result?.percentage ??
+      attempt?.percentage ??
       result?.percentage ??
+      lessonProgress.homeworkPercentage ??
       null;
 
     if (
@@ -828,18 +870,27 @@ function Homeworks() {
 
     return {
       submitted,
+
       score,
+
       totalScore,
+
       percentage,
+
       result,
+
+      attempt,
+
+      attemptId,
+
       lessonProgress,
 
       actualCourseId:
-        tracking.courseId ||
+        progressData.courseId ||
         homework.courseId,
 
       actualLessonId:
-        tracking.lessonId ||
+        progressData.lessonId ||
         homework.lessonId,
     };
   }
@@ -963,7 +1014,9 @@ function Homeworks() {
         return {
           total:
             visibleStudents.length,
+
           submitted: 0,
+
           notSubmitted:
             visibleStudents.length,
         };
@@ -1044,6 +1097,20 @@ function Homeworks() {
     );
 
     try {
+      /*
+        =================================================
+        1) courseProgress
+
+        نصفر بيانات الواجب فقط
+        من غير لمس مشاهدة الفيديو
+        =================================================
+      */
+
+      const courseProgress = {
+        ...(student.courseProgress ||
+          {}),
+      };
+
       const actualCourseId =
         info.actualCourseId ||
         selectedHomework.courseId;
@@ -1052,102 +1119,95 @@ function Homeworks() {
         info.actualLessonId ||
         selectedHomework.lessonId;
 
-      /*
-        ==========================================
-        ننسخ تقدم الطالب بالكامل
-        ==========================================
-      */
-
-      const courseProgress = {
-        ...(student.courseProgress ||
-          {}),
-      };
-
-      const currentCourse = {
-        ...(courseProgress[
+      if (
+        courseProgress?.[
           actualCourseId
-        ] || {}),
-      };
+        ]
+      ) {
+        const currentCourse = {
+          ...courseProgress[
+            actualCourseId
+          ],
+        };
 
-      const courseLessons = {
-        ...(currentCourse.lessons ||
-          {}),
-      };
+        const courseLessons = {
+          ...(currentCourse.lessons ||
+            {}),
+        };
 
-      const currentLessonProgress = {
-        ...(courseLessons[
-          actualLessonId
-        ] || {}),
-      };
+        if (
+          courseLessons[
+            actualLessonId
+          ]
+        ) {
+          const currentLesson = {
+            ...courseLessons[
+              actualLessonId
+            ],
+          };
+
+          courseLessons[
+            actualLessonId
+          ] = {
+            ...currentLesson,
+
+            homeworkSubmitted:
+              false,
+
+            homeworkCompleted:
+              false,
+
+            homeworkDone:
+              false,
+
+            isHomeworkSubmitted:
+              false,
+
+            homeworkSolutionUnlocked:
+              false,
+
+            homeworkScore:
+              null,
+
+            homeworkTotal:
+              null,
+
+            homeworkPercentage:
+              null,
+
+            homeworkSubmittedAt:
+              null,
+
+            homeworkId:
+              null,
+
+            homeworkTitle:
+              null,
+
+            homeworkReopenedByTeacher:
+              true,
+
+            homeworkReopenedAt:
+              new Date(),
+          };
+
+          currentCourse.lessons =
+            courseLessons;
+
+          courseProgress[
+            actualCourseId
+          ] = currentCourse;
+        }
+      }
 
       /*
-        ==========================================
-        نصفر بيانات الواجب فقط
+        =================================================
+        2) homeworkResults
 
-        بنحافظ على:
-        مشاهدة الفيديو
-        نسبة المشاهدة
-        تقدم المحاضرة
-        تقدم الكورس
-        ==========================================
-      */
-
-      courseLessons[
-        actualLessonId
-      ] = {
-        ...currentLessonProgress,
-
-        homeworkSubmitted:
-          false,
-
-        homeworkCompleted:
-          false,
-
-        homeworkDone:
-          false,
-
-        isHomeworkSubmitted:
-          false,
-
-        homeworkSolutionUnlocked:
-          false,
-
-        homeworkScore:
-          null,
-
-        homeworkTotal:
-          null,
-
-        homeworkPercentage:
-          null,
-
-        homeworkSubmittedAt:
-          null,
-
-        homeworkId:
-          null,
-
-        homeworkTitle:
-          null,
-
-        homeworkReopenedByTeacher:
-          true,
-
-        homeworkReopenedAt:
-          new Date(),
-      };
-
-      currentCourse.lessons =
-        courseLessons;
-
-      courseProgress[
-        actualCourseId
-      ] = currentCourse;
-
-      /*
-        ==========================================
-        نشيل نتيجة الواجب فقط
-        ==========================================
+        نحذف نتيجة الواجب فقط
+        سواء ID القديم homework-1
+        أو ID الجديد
+        =================================================
       */
 
       const oldResults =
@@ -1164,45 +1224,143 @@ function Homeworks() {
               return true;
             }
 
-            const resultCourseId =
-              result.courseId ||
-              result.courseID ||
-              "";
+            const sameHomework =
+              isSameHomeworkId(
+                result.homeworkId,
+                selectedHomework
+              ) ||
+              isSameHomeworkId(
+                result.id,
+                selectedHomework
+              );
 
-            const resultLessonId =
-              result.lessonId ||
-              result.lessonID ||
-              "";
+            /*
+              دعم البيانات الجديدة
+              اللي فيها courseId + lessonId
+            */
 
-            const sameHomeworkId =
-              result.homeworkId ===
-                selectedHomework.id ||
-              result.id ===
-                selectedHomework.id;
-
-            const sameLocation =
-              resultCourseId ===
-                actualCourseId &&
-              resultLessonId ===
-                actualLessonId;
+            const sameCourseAndLesson =
+              result.courseId ===
+                selectedHomework.courseId &&
+              result.lessonId ===
+                selectedHomework.lessonId;
 
             return !(
-              sameHomeworkId ||
-              sameLocation
+              sameHomework ||
+              sameCourseAndLesson
             );
           }
         );
 
+      /*
+        =================================================
+        3) homeworkAttempts
+
+        ده أهم جزء في النظام القديم
+
+        عند ملك مثلًا:
+
+        homeworkAttempts
+          homework-1
+            completed = true
+
+        عند إعادة الفتح هنخليه false
+        ونمسح نتيجة المحاولة فقط.
+
+        لكن هنسيب videoUnlocked
+        كما هو.
+        =================================================
+      */
+
+      const homeworkAttempts = {
+        ...(student.homeworkAttempts ||
+          {}),
+      };
+
+      const attemptId =
+        info.attemptId ||
+        selectedHomework.legacyHomeworkId ||
+        selectedHomework.id;
+
+      if (
+        attemptId &&
+        homeworkAttempts[
+          attemptId
+        ]
+      ) {
+        const oldAttempt = {
+          ...homeworkAttempts[
+            attemptId
+          ],
+        };
+
+        homeworkAttempts[
+          attemptId
+        ] = {
+          ...oldAttempt,
+
+          /*
+            نسيب started زي ما هو
+            ونسيب videoUnlocked زي ما هو
+          */
+
+          completed: false,
+
+          submitted: false,
+
+          completedAt: null,
+
+          submittedAt: null,
+
+          /*
+            نشيل نتيجة المحاولة السابقة
+          */
+
+          result: null,
+
+          /*
+            نخلي الطالب يبدأ الإجابات
+            من أول وجديد
+          */
+
+          answers: {},
+
+          currentQuestionIndex: 0,
+
+          reopenedByTeacher:
+            true,
+
+          reopenedAt:
+            new Date(),
+
+          updatedAt:
+            new Date(),
+        };
+      }
+
+      /*
+        =================================================
+        البيانات اللي هتتحدث
+        =================================================
+      */
+
       const updateData = {
         courseProgress,
+
         homeworkResults:
           newResults,
+
+        homeworkAttempts,
+
         updatedAt:
           serverTimestamp(),
       };
 
       /*
-        لو عندنا عداد واجبات مكتملة
+        completedHomeworks
+
+        الطالب كان واخد +1 عند التسليم
+        فنرجعه واحد عند إعادة الفتح.
       */
 
       if (
@@ -1247,7 +1405,7 @@ function Homeworks() {
 
   /*
     =========================================================
-    الواجبات في الإدارة
+    الواجبات في تبويب الإدارة
     =========================================================
   */
 
@@ -1984,10 +2142,14 @@ function Homeworks() {
                       <tr>
                         <th>الطالب</th>
                         <th>السنة</th>
-                        <th>رقم الطالب</th>
+                        <th>
+                          رقم الطالب
+                        </th>
                         <th>الحالة</th>
                         <th>الدرجة</th>
-                        <th>إعادة فتح</th>
+                        <th>
+                          إعادة فتح
+                        </th>
                       </tr>
                     </thead>
 
