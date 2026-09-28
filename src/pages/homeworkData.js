@@ -1512,7 +1512,7 @@ const homeworkData = {
       },
     ],
   },
-  "first-center-video-only-1": {
+"first-center-video-only-1": {
     id: "first-center-video-only-1",
 
     title: "فيديو الواجب",
@@ -1530,10 +1530,46 @@ const homeworkData = {
     questions: [],
   },
 
+  "first-center-video-only-2": {
+    id: "first-center-video-only-2",
+
+    title: "واجب المحاضرة الثانية",
+
+    grade: "الأول الثانوي",
+
+    studentType: "center",
+
+    centerOnly: true,
+
+    videoOnly: true,
+
+    videoId: "Y0OzJglU-BE",
+
+    questions: [],
+  },
+
+  "first-center-video-only-3": {
+    id: "first-center-video-only-3",
+
+    title: "واجب المحاضرة الثالثة",
+
+    grade: "الأول الثانوي",
+
+    studentType: "center",
+
+    centerOnly: true,
+
+    videoOnly: true,
+
+    videoId: "Rn3U3YRgLBY",
+
+    questions: [],
+  },
+
   "second-center-video-only-1": {
     id: "second-center-video-only-1",
 
-    title: "فيديو الواجب",
+    title: "واجب المحاضرة الثانية",
 
     grade: "الثاني الثانوي",
 
@@ -1546,6 +1582,175 @@ const homeworkData = {
     videoId: "zZrN1lDZGJw",
 
     questions: [],
+  },
+
+  "second-center-lecture-3-video-only": {
+    id: "second-center-lecture-3-video-only",
+
+    title: "واجب المحاضرة الثالثة الممنوع من الصرف",
+
+    grade: "الثاني الثانوي",
+
+    studentType: "center",
+
+    centerOnly: true,
+
+    videoOnly: true,
+
+    videoId: "831X7hehJ2k",
+
+    questions: [],
+  },
+
+  "second-center-lecture-4-video-only": {
+    id: "second-center-lecture-4-video-only",
+
+    title: "واجب المحاضرة الرابعة البلاغة",
+
+    grade: "الثاني الثانوي",
+
+    studentType: "center",
+
+    centerOnly: true,
+
+    videoOnly: true,
+
+    videoId: "2yjNltfldpc",
+
+    questions: [],
+  },
+
+  "third-homework-4": {
+    id: "third-homework-4",
+
+    title: "واجب المحاضرة الرابعة",
+
+    grade: "الثالث الثانوي",
+
+    studentType: "center",
+
+    centerOnly: true,
+
+    videoId: "yaoRGDPmF50",
+
+    questions: Array.from(
+      { length: 29 },
+      (_, index) => ({
+        id: `third-homework-4-q${index + 1}`,
+
+        questionNumber: index + 1,
+
+        question: `السؤال ${index + 1}`,
+
+        options: [
+          "أ",
+          "ب",
+          "ج",
+          "د",
+        ],
+
+        cancelled: false,
+
+        correctAnswer: [
+          2,
+          1,
+          0,
+          0,
+          3,
+          3,
+          3,
+          3,
+          0,
+          1,
+          1,
+          2,
+          2,
+          3,
+          2,
+          1,
+          3,
+          2,
+          2,
+          3,
+          3,
+          1,
+          2,
+          2,
+          1,
+          2,
+          2,
+          2,
+          3,
+        ][index],
+      })
+    ),
+  },
+
+  "third-homework-5": {
+    id: "third-homework-5",
+
+    title: "واجب المحاضرة الخامسة",
+
+    grade: "الثالث الثانوي",
+
+    studentType: "center",
+
+    centerOnly: true,
+
+    videoId: "2yjNltfldpc",
+
+    questions: Array.from(
+      { length: 30 },
+      (_, index) => ({
+        id: `third-homework-5-q${index + 1}`,
+
+        questionNumber: index + 1,
+
+        question: `السؤال ${index + 1}`,
+
+        options: [
+          "أ",
+          "ب",
+          "ج",
+          "د",
+        ],
+
+        cancelled: false,
+
+        correctAnswer: [
+          3,
+          2,
+          2,
+          1,
+          2,
+          0,
+          2,
+          1,
+          1,
+          0,
+          3,
+          3,
+          2,
+          1,
+          0,
+          1,
+          1,
+          0,
+          1,
+          3,
+          1,
+          0,
+          0,
+          2,
+          1,
+          0,
+          0,
+          1,
+          2,
+          0,
+        ][index],
+      })
+    ),
   },
 };
 
