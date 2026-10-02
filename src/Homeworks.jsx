@@ -275,6 +275,14 @@ function Homeworks() {
 
   const [
 
+    selectedHomeworkType,
+
+    setSelectedHomeworkType,
+
+  ] = useState("");
+
+  const [
+
     selectedHomeworkId,
 
     setSelectedHomeworkId,
@@ -763,21 +771,47 @@ function Homeworks() {
 
       const result = [];
 
-      /*
+      const addHomework = (homework) => {
+        if (!homework?.id) return;
 
-        نضيف واجبات homeworkData أولًا
+        const existingIndex = result.findIndex(
+          (item) => item.id === homework.id
+        );
 
-      */
-
-      platformHomeworks.forEach(
-
-        (homework) => {
-
-          result.push(homework);
-
+        if (existingIndex >= 0) {
+          const existing = result[existingIndex];
+          result[existingIndex] = {
+            ...homework,
+            ...existing,
+            audienceTypes: [
+              ...new Set([
+                ...(existing.audienceTypes || []),
+                ...(homework.audienceTypes || []),
+              ]),
+            ],
+          };
+          return;
         }
 
-      );
+        result.push(homework);
+      };
+
+      /*
+        1) واجبات homeworkData هي المصدر الأساسي.
+      */
+      platformHomeworks.forEach((homework) => {
+        const homeworkType =
+          homework.centerOnly === true || homework.studentType === "center"
+            ? "center"
+            : homework.studentType === "online"
+              ? "online"
+              : "online";
+
+        addHomework({
+          ...homework,
+          audienceTypes: [homeworkType],
+        });
+      });
 
       /*
 
@@ -866,22 +900,93 @@ function Homeworks() {
             );
 
           if (!duplicate) {
+            const homeworkType =
+              firestoreHomework.centerOnly === true ||
+              firestoreHomework.studentType === "center"
+                ? "center"
+                : firestoreHomework.studentType === "online"
+                  ? "online"
+                  : "online";
 
-            result.push(
-
-              firestoreHomework
-
-            );
-
+            addHomework({
+              ...firestoreHomework,
+              audienceTypes: [homeworkType],
+            });
           }
 
         }
 
       );
 
+      /*
+        3) اكتشاف أي واجب موجود فعليًا عند الطلاب.
+        ده يخلي الواجبات القديمة والجديدة تظهر حتى لو لم يكن لها document
+        مستقل داخل collection homeworks.
+      */
+      students.forEach((student) => {
+        const audienceType =
+          student?.studentType === "center" ? "center" : "online";
+        const studentGrade = normalizeGrade(student?.grade);
+
+        const savedResults = Array.isArray(student?.homeworkResults)
+          ? student.homeworkResults
+          : [];
+
+        savedResults.forEach((saved, index) => {
+          const savedId = saved?.homeworkId || saved?.id;
+          if (!savedId) return;
+
+          addHomework({
+            id: savedId,
+            title:
+              saved?.homeworkTitle ||
+              saved?.title ||
+              `واجب ${saved?.lessonTitle || saved?.lessonId || index + 1}`,
+            courseId: saved?.courseId || "",
+            lessonId: saved?.lessonId || "",
+            grade: saved?.grade || studentGrade,
+            studentType: audienceType,
+            centerOnly: audienceType === "center",
+            totalScore:
+              saved?.totalQuestions ?? saved?.totalScore ?? saved?.total ?? 0,
+            isPublished: true,
+            isDiscoveredHomework: true,
+            audienceTypes: [audienceType],
+          });
+        });
+
+        const attempts =
+          student?.homeworkAttempts && typeof student.homeworkAttempts === "object"
+            ? student.homeworkAttempts
+            : {};
+
+        Object.entries(attempts).forEach(([attemptKey, attempt]) => {
+          const savedId = attempt?.homeworkId || attempt?.id || attemptKey;
+          if (!savedId) return;
+
+          addHomework({
+            id: savedId,
+            title:
+              attempt?.homeworkTitle ||
+              attempt?.title ||
+              `واجب ${attempt?.lessonTitle || attempt?.lessonId || savedId}`,
+            courseId: attempt?.courseId || "",
+            lessonId: attempt?.lessonId || "",
+            grade: attempt?.grade || studentGrade,
+            studentType: audienceType,
+            centerOnly: audienceType === "center",
+            totalScore:
+              attempt?.totalQuestions ?? attempt?.totalScore ?? attempt?.total ?? 0,
+            isPublished: true,
+            isDiscoveredHomework: true,
+            audienceTypes: [audienceType],
+          });
+        });
+      });
+
       return result;
 
-    }, [firestoreHomeworks]);
+    }, [firestoreHomeworks, students]);
 
   /*
 
@@ -1195,6 +1300,25 @@ function Homeworks() {
 
         (homework) => {
 
+          const homeworkTypes =
+            Array.isArray(homework.audienceTypes) && homework.audienceTypes.length
+              ? homework.audienceTypes
+              : [
+                  homework.centerOnly === true || homework.studentType === "center"
+                    ? "center"
+                    : "online",
+                ];
+
+          const matchesType =
+            !selectedHomeworkType ||
+            homeworkTypes.includes(selectedHomeworkType);
+
+          if (!matchesType) {
+
+            return false;
+
+          }
+
           if (!selectedGrade) {
 
             return true;
@@ -1274,6 +1398,8 @@ function Homeworks() {
       homeworks,
 
       selectedGrade,
+
+      selectedHomeworkType,
 
       courses,
 
@@ -3477,11 +3603,23 @@ function Homeworks() {
 
                 );
 
+            const matchesStudentType =
+
+              !selectedHomeworkType ||
+
+              (selectedHomeworkType === "center"
+
+                ? student.studentType === "center"
+
+                : student.studentType !== "center");
+
             return (
 
               matchesSearch &&
 
-              matchesGrade
+              matchesGrade &&
+
+              matchesStudentType
 
             );
 
@@ -3528,6 +3666,8 @@ function Homeworks() {
       studentSearchText,
 
       selectedGrade,
+
+      selectedHomeworkType,
 
     ]);
 
@@ -5095,6 +5235,34 @@ function Homeworks() {
 
               <div className="admin-filter-box">
 
+                <FaUsers />
+
+                <select
+
+                  value={selectedHomeworkType}
+
+                  onChange={(event) => {
+
+                    setSelectedHomeworkType(event.target.value);
+
+                    setSelectedHomeworkId("");
+
+                  }}
+
+                >
+
+                  <option value="">كل أنواع الواجبات</option>
+
+                  <option value="online">واجب الأونلاين</option>
+
+                  <option value="center">واجب السنتر</option>
+
+                </select>
+
+              </div>
+
+              <div className="admin-filter-box">
+
                 <FaClipboardCheck />
 
                 <select
@@ -5123,7 +5291,7 @@ function Homeworks() {
 
                   <option value="">
 
-                    اختاري الواجب
+                    اختاري واجب المحاضرة
 
                   </option>
 

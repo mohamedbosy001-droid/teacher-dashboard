@@ -41,6 +41,7 @@ import {
 } from "react-icons/fa";
 
 import { db } from "./firebase";
+import platformHomeworkData from "./pages/homeworkData";
 import "./App.css";
 
 function StudentProfile() {
@@ -65,6 +66,9 @@ function StudentProfile() {
 
   const [resettingExamId, setResettingExamId] =
     useState("");
+
+  const [activeDetailsTab, setActiveDetailsTab] =
+    useState("lectures");
 
   /*
     متابعة بيانات الطالب مباشرة من Firebase
@@ -215,6 +219,81 @@ function StudentProfile() {
       ? student.homeworkResults
       : [];
   }, [student]);
+
+  function normalizeGrade(value) {
+    const text = String(value || "")
+      .trim()
+      .replace(/^الصف\s+/u, "");
+
+    if (text.includes("الأول") || text.includes("الاول") || text.includes("أولى") || text.includes("اولى")) {
+      return "الأول الثانوي";
+    }
+    if (text.includes("الثاني") || text.includes("الثانى") || text.includes("تاني") || text.includes("تانية")) {
+      return "الثاني الثانوي";
+    }
+    if (text.includes("الثالث") || text.includes("تالت") || text.includes("تالتة")) {
+      return "الثالث الثانوي";
+    }
+    return text;
+  }
+
+  const studentHomeworks = useMemo(() => {
+    const grade = normalizeGrade(student?.grade);
+    return Object.values(platformHomeworkData || {}).filter((homework) => {
+      if (!homework) return false;
+      if (homework.grade && normalizeGrade(homework.grade) !== grade) return false;
+      if (homework.centerOnly === true && student?.studentType !== "center") return false;
+      if (homework.studentType === "online" && student?.studentType === "center") return false;
+      return true;
+    });
+  }, [student]);
+
+  const LEGACY_HOMEWORK_IDS = {
+    "third-month-lesson-1-homework": ["homework-1"],
+    "third-month-lesson-2-homework": ["third-homework-2"],
+  };
+
+  const getHomeworkResult = (homework) => {
+    if (!homework) return null;
+
+    const ids = [
+      homework.id,
+      homework.legacyHomeworkId,
+      ...(Array.isArray(homework.legacyHomeworkIds)
+        ? homework.legacyHomeworkIds
+        : []),
+      ...(LEGACY_HOMEWORK_IDS[homework.id] || []),
+    ].filter(Boolean);
+
+    const reversedResults = [...homeworkResults].reverse();
+
+    const byId = reversedResults.find((result) =>
+      ids.includes(result?.homeworkId) || ids.includes(result?.id)
+    );
+    if (byId) return byId;
+
+    if (homework.courseId && homework.lessonId) {
+      const byCourseAndLesson = reversedResults.find(
+        (result) =>
+          result?.courseId === homework.courseId &&
+          result?.lessonId === homework.lessonId
+      );
+      if (byCourseAndLesson) return byCourseAndLesson;
+    }
+
+    // دعم النتائج القديمة التي كانت تحفظ اسم الواجب فقط.
+    const normalizedTitle = String(homework.title || "").trim();
+    if (normalizedTitle) {
+      const byTitle = reversedResults.find(
+        (result) =>
+          String(result?.homeworkTitle || result?.title || "").trim() ===
+          normalizedTitle
+      );
+      if (byTitle) return byTitle;
+    }
+
+    return null;
+  };
 
   const allExamIds = useMemo(() => {
     const resultIds =
@@ -1201,11 +1280,35 @@ function StudentProfile() {
 
         <section
           style={{
+            display: "flex",
+            gap: "12px",
+            flexWrap: "wrap",
+            marginBottom: "24px",
+            padding: "14px",
+            border: "1px solid rgba(200, 157, 93, 0.35)",
+            borderRadius: "18px",
+            background: "rgba(255,255,255,0.03)",
+          }}
+        >
+          <button type="button" className={activeDetailsTab === "lectures" ? "admin-primary-btn" : "admin-secondary-btn"} onClick={() => setActiveDetailsTab("lectures")}>
+            <FaVideo /> المحاضرات
+          </button>
+          <button type="button" className={activeDetailsTab === "homeworks" ? "admin-primary-btn" : "admin-secondary-btn"} onClick={() => setActiveDetailsTab("homeworks")}>
+            <FaFileAlt /> الواجبات
+          </button>
+          <button type="button" className={activeDetailsTab === "exams" ? "admin-primary-btn" : "admin-secondary-btn"} onClick={() => setActiveDetailsTab("exams")}>
+            <FaClipboardCheck /> الامتحانات
+          </button>
+        </section>
+
+        <section
+          style={{
             marginBottom: "30px",
+            display: activeDetailsTab === "lectures" ? "block" : "none",
           }}
         >
           <h2>
-            <FaVideo /> سجل المشاهدات
+            <FaVideo /> المحاضرات
           </h2>
 
           {watchHistory.length === 0 ? (
@@ -1293,6 +1396,7 @@ function StudentProfile() {
         <section
           style={{
             marginBottom: "30px",
+            display: activeDetailsTab === "exams" ? "block" : "none",
           }}
         >
           <h2>
@@ -1470,64 +1574,40 @@ function StudentProfile() {
         <section
           style={{
             marginBottom: "30px",
+            display: activeDetailsTab === "homeworks" ? "block" : "none",
           }}
         >
           <h2>
             <FaFileAlt /> الواجبات
           </h2>
 
-          {homeworkResults.length ===
-          0 ? (
+          {studentHomeworks.length === 0 ? (
             <section className="admin-data-empty">
-              <p>
-                لم يسلّم الطالب أي واجب
-                حتى الآن.
-              </p>
+              <p>لا توجد واجبات مسجلة لهذه السنة حتى الآن.</p>
             </section>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gap: "14px",
-              }}
-            >
-              {homeworkResults.map(
-                (
-                  homeworkResult,
-                  index
-                ) => (
-                  <article
-                    key={
-                      homeworkResult.homeworkId ||
-                      index
-                    }
-                    className="admin-data-card"
-                  >
+            <div style={{ display: "grid", gap: "14px" }}>
+              {studentHomeworks.map((homework, index) => {
+                const result = getHomeworkResult(homework);
+                const total = result?.totalQuestions || result?.totalScore || (Array.isArray(homework.questions) ? homework.questions.filter((q) => q?.cancelled !== true).length : 0);
+                return (
+                  <article key={homework.id || index} className="admin-data-card">
                     <FaFileAlt />
-
-                    <h3>
-                      {homeworkResult.homeworkTitle ||
-                        "واجب"}
-                    </h3>
-
-                    <strong>
-                      {homeworkResult.score ||
-                        0}{" "}
-                      من{" "}
-                      {homeworkResult.totalQuestions ||
-                        homeworkResult.totalScore ||
-                        0}
-                    </strong>
-
-                    <p>
-                      تاريخ التسليم:{" "}
-                      {formatTimestamp(
-                        homeworkResult.submittedAt
-                      )}
-                    </p>
+                    <h3>{homework.title || "واجب"}</h3>
+                    {result ? (
+                      <>
+                        <p style={{ color: "#45d689", fontWeight: 700 }}><FaCheckCircle /> تم تسليم الواجب</p>
+                        {!homework.videoOnly && (
+                          <strong>{result.score || 0} من {total}</strong>
+                        )}
+                        <p>تاريخ التسليم: {formatTimestamp(result.submittedAt)}</p>
+                      </>
+                    ) : (
+                      <p style={{ color: "#e06b6b", fontWeight: 700 }}><FaTimesCircle /> لم يسلّم الواجب</p>
+                    )}
                   </article>
-                )
-              )}
+                );
+              })}
             </div>
           )}
         </section>

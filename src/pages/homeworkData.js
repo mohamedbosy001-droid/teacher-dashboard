@@ -1512,7 +1512,7 @@ const homeworkData = {
       },
     ],
   },
-"first-center-video-only-1": {
+  "first-center-video-only-1": {
     id: "first-center-video-only-1",
 
     title: "فيديو الواجب",
@@ -1530,46 +1530,10 @@ const homeworkData = {
     questions: [],
   },
 
-  "first-center-video-only-2": {
-    id: "first-center-video-only-2",
-
-    title: "واجب المحاضرة الثانية",
-
-    grade: "الأول الثانوي",
-
-    studentType: "center",
-
-    centerOnly: true,
-
-    videoOnly: true,
-
-    videoId: "Y0OzJglU-BE",
-
-    questions: [],
-  },
-
-  "first-center-video-only-3": {
-    id: "first-center-video-only-3",
-
-    title: "واجب المحاضرة الثالثة",
-
-    grade: "الأول الثانوي",
-
-    studentType: "center",
-
-    centerOnly: true,
-
-    videoOnly: true,
-
-    videoId: "Rn3U3YRgLBY",
-
-    questions: [],
-  },
-
   "second-center-video-only-1": {
     id: "second-center-video-only-1",
 
-    title: "واجب المحاضرة الثانية",
+    title: "فيديو الواجب",
 
     grade: "الثاني الثانوي",
 
@@ -1583,47 +1547,10 @@ const homeworkData = {
 
     questions: [],
   },
+  "third-homework-6": {
+    id: "third-homework-6",
 
-  "second-center-lecture-3-video-only": {
-    id: "second-center-lecture-3-video-only",
-
-    title: "واجب المحاضرة الثالثة الممنوع من الصرف",
-
-    grade: "الثاني الثانوي",
-
-    studentType: "center",
-
-    centerOnly: true,
-
-    videoOnly: true,
-
-    videoId: "831X7hehJ2k",
-
-    questions: [],
-  },
-
-  "second-center-lecture-4-video-only": {
-    id: "second-center-lecture-4-video-only",
-
-    title: "واجب المحاضرة الرابعة البلاغة",
-
-    grade: "الثاني الثانوي",
-
-    studentType: "center",
-
-    centerOnly: true,
-
-    videoOnly: true,
-
-    videoId: "2yjNltfldpc",
-
-    questions: [],
-  },
-
-  "third-homework-4": {
-    id: "third-homework-4",
-
-    title: "واجب المحاضرة الرابعة",
+    title: "واجب المحاضرة السادسة",
 
     grade: "الثالث الثانوي",
 
@@ -1631,12 +1558,12 @@ const homeworkData = {
 
     centerOnly: true,
 
-    videoId: "yaoRGDPmF50",
+videoId: "g4oIr06pQjI",
 
     questions: Array.from(
-      { length: 29 },
+      { length: 21 },
       (_, index) => ({
-        id: `third-homework-4-q${index + 1}`,
+        id: `third-homework-6-q${index + 1}`,
 
         questionNumber: index + 1,
 
@@ -1652,105 +1579,47 @@ const homeworkData = {
         cancelled: false,
 
         correctAnswer: [
+          0,
+          1,
+          0,
           2,
           1,
           0,
+          3,
+          2,
+          3,
+          2,
+          1,
+          1,
           0,
           3,
-          3,
-          3,
-          3,
+          0,
+          0,
           0,
           1,
-          1,
-          2,
-          2,
-          3,
-          2,
-          1,
-          3,
-          2,
-          2,
           3,
           3,
-          1,
-          2,
-          2,
-          1,
-          2,
-          2,
-          2,
           3,
         ][index],
       })
     ),
   },
+  "first-center-kada-homework": {
+    id: "first-center-kada-homework",
 
-  "third-homework-5": {
-    id: "third-homework-5",
+    title: "واجب كاد وأخواتها",
 
-    title: "واجب المحاضرة الخامسة",
-
-    grade: "الثالث الثانوي",
+    grade: "الأول الثانوي",
 
     studentType: "center",
 
     centerOnly: true,
 
-    videoId: "2yjNltfldpc",
+    videoOnly: true,
 
-    questions: Array.from(
-      { length: 30 },
-      (_, index) => ({
-        id: `third-homework-5-q${index + 1}`,
+    videoId: "jh8dpn6DIhQ",
 
-        questionNumber: index + 1,
-
-        question: `السؤال ${index + 1}`,
-
-        options: [
-          "أ",
-          "ب",
-          "ج",
-          "د",
-        ],
-
-        cancelled: false,
-
-        correctAnswer: [
-          3,
-          2,
-          2,
-          1,
-          2,
-          0,
-          2,
-          1,
-          1,
-          0,
-          3,
-          3,
-          2,
-          1,
-          0,
-          1,
-          1,
-          0,
-          1,
-          3,
-          1,
-          0,
-          0,
-          2,
-          1,
-          0,
-          0,
-          1,
-          2,
-          0,
-        ][index],
-      })
-    ),
+    questions: [],
   },
 };
 

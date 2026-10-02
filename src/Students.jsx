@@ -35,32 +35,15 @@ import "./App.css";
 function Students() {
   const navigate = useNavigate();
 
-  const [students, setStudents] =
-    useState([]);
-
-  const [isLoading, setIsLoading] =
-    useState(true);
-
-  const [errorMessage, setErrorMessage] =
-    useState("");
-
-  const [searchText, setSearchText] =
-    useState("");
-
-  const [gradeFilter, setGradeFilter] =
-    useState("all");
-
-  const [typeFilter, setTypeFilter] =
-    useState("all");
-
-  const [statusFilter, setStatusFilter] =
-    useState("all");
-
-  const [selectedStudent, setSelectedStudent] =
-    useState(null);
-
-  const [resettingExamId, setResettingExamId] =
-    useState("");
+  const [students, setStudents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [resettingExamId, setResettingExamId] = useState("");
 
   useEffect(() => {
     const studentsReference = collection(
@@ -71,43 +54,37 @@ function Students() {
     const unsubscribe = onSnapshot(
       studentsReference,
       (snapshot) => {
-        const studentsData =
-          snapshot.docs.map(
-            (studentDocument) => ({
-              id: studentDocument.id,
-              ...studentDocument.data(),
-            })
-          );
+        const studentsData = snapshot.docs.map(
+          (studentDocument) => ({
+            id: studentDocument.id,
+            ...studentDocument.data(),
+          })
+        );
 
         studentsData.sort(
           (firstStudent, secondStudent) =>
             String(
               firstStudent.fullName || ""
             ).localeCompare(
-              String(
-                secondStudent.fullName || ""
-              ),
+              String(secondStudent.fullName || ""),
               "ar"
             )
         );
 
         setStudents(studentsData);
 
-        setSelectedStudent(
-          (previousStudent) => {
-            if (!previousStudent) {
-              return null;
-            }
-
-            return (
-              studentsData.find(
-                (student) =>
-                  student.id ===
-                  previousStudent.id
-              ) || null
-            );
+        setSelectedStudent((previousStudent) => {
+          if (!previousStudent) {
+            return null;
           }
-        );
+
+          return (
+            studentsData.find(
+              (student) =>
+                student.id === previousStudent.id
+            ) || null
+          );
+        });
 
         setIsLoading(false);
         setErrorMessage("");
@@ -145,15 +122,9 @@ function Students() {
 
       const matchesSearch =
         !cleanSearchText ||
-        studentName.includes(
-          cleanSearchText
-        ) ||
-        studentPhone.includes(
-          cleanSearchText
-        ) ||
-        parentPhone.includes(
-          cleanSearchText
-        );
+        studentName.includes(cleanSearchText) ||
+        studentPhone.includes(cleanSearchText) ||
+        parentPhone.includes(cleanSearchText);
 
       const matchesGrade =
         gradeFilter === "all" ||
@@ -161,8 +132,7 @@ function Students() {
 
       const matchesType =
         typeFilter === "all" ||
-        student.studentType ===
-          typeFilter;
+        student.studentType === typeFilter;
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -183,9 +153,7 @@ function Students() {
     statusFilter,
   ]);
 
-  async function handleActivateStudent(
-    studentId
-  ) {
+  async function handleActivateStudent(studentId) {
     try {
       const studentReference = doc(
         db,
@@ -214,17 +182,13 @@ function Students() {
 
     return (
       examResults.find(
-        (result) =>
-          result?.examId === examId
+        (result) => result?.examId === examId
       ) || null
     );
   }
 
   function getExamAttempt(student, examId) {
-    return (
-      student?.examAttempts?.[examId] ||
-      null
-    );
+    return student?.examAttempts?.[examId] || null;
   }
 
   function getExamStatus(student, examId) {
@@ -264,9 +228,7 @@ function Students() {
     }
 
     const courseProgress =
-      coursesProgress[
-        "free-second-course"
-      ];
+      coursesProgress["free-second-course"];
 
     if (
       !courseProgress ||
@@ -275,8 +237,7 @@ function Students() {
       return null;
     }
 
-    const lessons =
-      courseProgress.lessons;
+    const lessons = courseProgress.lessons;
 
     if (
       !lessons ||
@@ -299,18 +260,14 @@ function Students() {
 
     try {
       const date =
-        typeof timestamp.toDate ===
-        "function"
+        typeof timestamp.toDate === "function"
           ? timestamp.toDate()
           : new Date(timestamp);
 
-      return date.toLocaleString(
-        "ar-EG",
-        {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }
-      );
+      return date.toLocaleString("ar-EG", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
     } catch {
       return "غير مسجل";
     }
@@ -321,10 +278,9 @@ function Students() {
     examId,
     examTitle
   ) {
-    const shouldReopen =
-      window.confirm(
-        `هل تريد إعادة فتح ${examTitle} للطالب ${student.fullName}؟`
-      );
+    const shouldReopen = window.confirm(
+      `هل تريد إعادة فتح ${examTitle} للطالب ${student.fullName}؟`
+    );
 
     if (!shouldReopen) {
       return;
@@ -347,9 +303,7 @@ function Students() {
               studentReference
             );
 
-          if (
-            !studentSnapshot.exists()
-          ) {
+          if (!studentSnapshot.exists()) {
             throw new Error(
               "Student not found."
             );
@@ -358,12 +312,11 @@ function Students() {
           const savedStudent =
             studentSnapshot.data();
 
-          const examResults =
-            Array.isArray(
-              savedStudent.examResults
-            )
-              ? savedStudent.examResults
-              : [];
+          const examResults = Array.isArray(
+            savedStudent.examResults
+          )
+            ? savedStudent.examResults
+            : [];
 
           const hadCompletedResult =
             examResults.some(
@@ -379,15 +332,13 @@ function Students() {
 
           const currentCompletedExams =
             Number(
-              savedStudent.completedExams ||
-                0
+              savedStudent.completedExams || 0
             );
 
           transaction.update(
             studentReference,
             {
-              examResults:
-                filteredResults,
+              examResults: filteredResults,
 
               [`examAttempts.${examId}`]:
                 deleteField(),
@@ -395,8 +346,7 @@ function Students() {
               completedExams:
                 hadCompletedResult
                   ? Math.max(
-                      currentCompletedExams -
-                        1,
+                      currentCompletedExams - 1,
                       0
                     )
                   : currentCompletedExams,
@@ -457,8 +407,7 @@ function Students() {
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent:
-              "space-between",
+            justifyContent: "space-between",
             gap: "15px",
             flexWrap: "wrap",
           }}
@@ -490,13 +439,14 @@ function Students() {
                   fontWeight: "800",
                 }}
               >
-                بدأ الامتحان ولم يسلّمه
+                بدأ الامتحان ولم يسلمه
               </p>
             ) : (
               <p
                 style={{
                   margin: 0,
-                  color: "#c8b9aa",
+                  color: "#aaa",
+                  fontWeight: "800",
                 }}
               >
                 لم يبدأ الامتحان
@@ -504,286 +454,282 @@ function Students() {
             )}
           </div>
 
-          {result && (
-            <div
-              style={{
-                textAlign: "center",
-              }}
+          {(status === "completed" ||
+            status === "started") && (
+            <button
+              type="button"
+              className="admin-secondary-btn"
+              disabled={
+                resettingExamId === examId
+              }
+              onClick={() =>
+                reopenExam(
+                  student,
+                  examId,
+                  examTitle
+                )
+              }
             >
-              <strong
-                style={{
-                  display: "block",
-                  fontSize: "24px",
-                  color: "#f1c66e",
-                }}
-              >
-                {result.score} من{" "}
-                {result.totalQuestions}
-              </strong>
+              <FaLockOpen />
 
-              <span>
-                {result.percentage}%
-              </span>
-            </div>
+              {resettingExamId === examId
+                ? "جارٍ الفتح..."
+                : "إعادة فتح الامتحان"}
+            </button>
           )}
         </div>
 
-        {attempt?.startedAt && (
-          <p>
-            بدأ في:{" "}
-            {formatTimestamp(
-              attempt.startedAt
-            )}
-          </p>
-        )}
-
-        {result?.submittedAt && (
-          <p>
-            تم التسليم في:{" "}
-            {formatTimestamp(
-              result.submittedAt
-            )}
-          </p>
-        )}
-
-        {(result || attempt) && (
-          <button
-            type="button"
-            className="admin-primary-btn"
-            disabled={
-              resettingExamId === examId
-            }
-            onClick={() =>
-              reopenExam(
-                student,
-                examId,
-                examTitle
-              )
-            }
+        {result && (
+          <div
             style={{
-              marginTop: "10px",
+              marginTop: "15px",
+              display: "grid",
+              gap: "8px",
             }}
           >
-            <FaLockOpen />
+            <p>
+              الدرجة:{" "}
+              <strong>
+                {result.score ?? 0}
+              </strong>
+              {" / "}
+              <strong>
+                {result.totalQuestions ??
+                  result.total ??
+                  "-"}
+              </strong>
+            </p>
 
-            {resettingExamId === examId
-              ? "جاري إعادة الفتح..."
-              : `إعادة فتح ${examTitle}`}
-          </button>
+            <p>
+              عدد الإجابات الصحيحة:{" "}
+              {result.correctAnswers ??
+                result.score ??
+                0}
+            </p>
+
+            <p>
+              تاريخ التسليم:{" "}
+              {formatTimestamp(
+                result.completedAt ||
+                  result.submittedAt
+              )}
+            </p>
+          </div>
+        )}
+
+        {!result && attempt && (
+          <div
+            style={{
+              marginTop: "15px",
+            }}
+          >
+            <p>
+              بدأ الطالب الامتحان ولكن لا
+              توجد نتيجة نهائية مسجلة حتى
+              الآن.
+            </p>
+          </div>
         )}
       </article>
     );
   }
 
+  const totalStudents = students.length;
+
+  const activeStudents = students.filter(
+    (student) =>
+      student.status === "active"
+  ).length;
+
+  const pendingStudents = students.filter(
+    (student) =>
+      student.status !== "active"
+  ).length;
+
   return (
-    <main className="admin-section-page">
-      <div className="admin-section-container">
-        <header className="admin-section-header">
-          <div className="admin-section-title">
-            <div className="admin-section-title-icon">
+    <main className="admin-page">
+      <div className="admin-page-container">
+        <div className="admin-page-header">
+          <div>
+            <h1>
               <FaUsers />
-            </div>
+              الطلاب
+            </h1>
+
+            <p>
+              إدارة حسابات الطلاب ومتابعة
+              بياناتهم.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="admin-secondary-btn"
+            onClick={() =>
+              navigate("/dashboard")
+            }
+          >
+            <FaArrowRight />
+            العودة للوحة التحكم
+          </button>
+        </div>
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "15px",
+            marginBottom: "25px",
+          }}
+        >
+          <div className="admin-stat-card">
+            <FaUsers />
 
             <div>
-              <span>
-                لوحة تحكم المدرس
-              </span>
-
-              <h1>إدارة الطلاب</h1>
-
-              <p>
-                البحث عن الطلاب ومراجعة
-                بياناتهم ونتائج امتحاناتهم.
-              </p>
+              <span>كل الطلاب</span>
+              <strong>
+                {totalStudents}
+              </strong>
             </div>
           </div>
 
-          <div className="admin-section-actions">
-            <button
-              type="button"
-              className="admin-secondary-btn"
-              onClick={() =>
-                navigate("/dashboard")
-              }
-            >
-              <FaArrowRight />
-              الرجوع
-            </button>
+          <div className="admin-stat-card">
+            <FaCheckCircle />
+
+            <div>
+              <span>الحسابات المفعلة</span>
+              <strong>
+                {activeStudents}
+              </strong>
+            </div>
           </div>
-        </header>
 
-        {!isLoading &&
-          !errorMessage &&
-          students.length > 0 && (
-            <section
+          <div className="admin-stat-card">
+            <FaClock />
+
+            <div>
+              <span>قيد المراجعة</span>
+              <strong>
+                {pendingStudents}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="admin-filters"
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "2fr repeat(3, 1fr)",
+            gap: "12px",
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+            }}
+          >
+            <FaSearch
               style={{
-                marginBottom: "25px",
-                padding: "20px",
-                border:
-                  "1px solid rgba(190, 148, 91, 0.35)",
-                borderRadius: "18px",
-                background:
-                  "rgba(255, 255, 255, 0.04)",
+                position: "absolute",
+                right: "14px",
+                top: "50%",
+                transform:
+                  "translateY(-50%)",
               }}
-            >
-              <div
-                style={{
-                  position: "relative",
-                  marginBottom: "15px",
-                }}
-              >
-                <FaSearch
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    right: "16px",
-                    transform:
-                      "translateY(-50%)",
-                    color: "#a98a68",
-                  }}
-                />
+            />
 
-                <input
-                  type="search"
-                  value={searchText}
-                  onChange={(event) =>
-                    setSearchText(
-                      event.target.value
-                    )
-                  }
-                  placeholder="ابحث باسم الطالب أو رقم الهاتف..."
-                  style={{
-                    width: "100%",
-                    minHeight: "52px",
-                    padding:
-                      "12px 48px 12px 16px",
-                    border:
-                      "1px solid rgba(190, 148, 91, 0.45)",
-                    borderRadius: "13px",
-                    background: "#211a17",
-                    color: "#fff",
-                    fontSize: "15px",
-                  }}
-                />
-              </div>
+            <input
+              type="text"
+              value={searchText}
+              onChange={(event) =>
+                setSearchText(
+                  event.target.value
+                )
+              }
+              placeholder="ابحث باسم الطالب أو رقم الهاتف..."
+              style={{
+                width: "100%",
+                padding:
+                  "12px 42px 12px 12px",
+              }}
+            />
+          </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: "12px",
-                }}
-              >
-                <select
-                  value={gradeFilter}
-                  onChange={(event) =>
-                    setGradeFilter(
-                      event.target.value
-                    )
-                  }
-                  style={{
-                    minHeight: "48px",
-                    padding: "10px",
-                    borderRadius: "12px",
-                  }}
-                >
-                  <option value="all">
-                    كل الصفوف
-                  </option>
+          <select
+            value={gradeFilter}
+            onChange={(event) =>
+              setGradeFilter(
+                event.target.value
+              )
+            }
+          >
+            <option value="all">
+              كل الصفوف
+            </option>
 
-                  <option value="الأول الثانوي">
-                    الأول الثانوي
-                  </option>
+            <option value="الأول الثانوي">
+              الأول الثانوي
+            </option>
 
-                  <option value="الثاني الثانوي">
-                    الثاني الثانوي
-                  </option>
+            <option value="الثاني الثانوي">
+              الثاني الثانوي
+            </option>
 
-                  <option value="الثالث الثانوي">
-                    الثالث الثانوي
-                  </option>
-                </select>
+            <option value="الثالث الثانوي">
+              الثالث الثانوي
+            </option>
+          </select>
 
-                <select
-                  value={typeFilter}
-                  onChange={(event) =>
-                    setTypeFilter(
-                      event.target.value
-                    )
-                  }
-                  style={{
-                    minHeight: "48px",
-                    padding: "10px",
-                    borderRadius: "12px",
-                  }}
-                >
-                  <option value="all">
-                    كل أنواع الطلاب
-                  </option>
+          <select
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(
+                event.target.value
+              )
+            }
+          >
+            <option value="all">
+              كل الأنواع
+            </option>
 
-                  <option value="center">
-                    طلاب السنتر
-                  </option>
+            <option value="center">
+              طلاب السنتر
+            </option>
 
-                  <option value="online">
-                    طلاب الأونلاين
-                  </option>
-                </select>
+            <option value="online">
+              طلاب الأونلاين
+            </option>
+          </select>
 
-                <select
-                  value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(
-                      event.target.value
-                    )
-                  }
-                  style={{
-                    minHeight: "48px",
-                    padding: "10px",
-                    borderRadius: "12px",
-                  }}
-                >
-                  <option value="all">
-                    كل الحالات
-                  </option>
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value
+              )
+            }
+          >
+            <option value="all">
+              كل الحالات
+            </option>
 
-                  <option value="active">
-                    الحسابات المفعلة
-                  </option>
+            <option value="active">
+              مفعل
+            </option>
 
-                  <option value="pending">
-                    قيد المراجعة
-                  </option>
-                </select>
-              </div>
-
-              <div
-                style={{
-                  marginTop: "15px",
-                  display: "flex",
-                  gap: "15px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <strong>
-                  إجمالي الطلاب:{" "}
-                  {students.length}
-                </strong>
-
-                <strong>
-                  النتائج الظاهرة:{" "}
-                  {filteredStudents.length}
-                </strong>
-              </div>
-            </section>
-          )}
+            <option value="pending">
+              قيد المراجعة
+            </option>
+          </select>
+        </section>
 
         {isLoading && (
           <section className="admin-data-empty">
-            <div className="admin-data-empty-icon">
-              <FaClock />
-            </div>
+            <FaClock />
 
             <h2>
               جاري تحميل الطلاب...
@@ -794,6 +740,7 @@ function Students() {
         {!isLoading && errorMessage && (
           <section className="admin-data-empty">
             <h2>حدث خطأ</h2>
+
             <p>{errorMessage}</p>
           </section>
         )}
