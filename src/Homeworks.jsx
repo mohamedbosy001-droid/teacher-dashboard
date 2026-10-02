@@ -66,7 +66,6 @@ import {
 
 import { db } from "./firebase";
 
-import platformHomeworkData from "./pages/homeworkData";
 
 import "./App.css";
 
@@ -93,111 +92,30 @@ import "./App.css";
 */
 
 const LEGACY_HOMEWORK_IDS = {
-
-  "third-month-lesson-1-homework": [
-
-    "homework-1",
-
-  ],
-
-  "third-month-lesson-2-homework": [
-
-    "third-homework-2",
-
-  ],
-
-
+  "third-month-lesson-1-homework": ["homework-1"],
+  "third-month-lesson-2-homework": ["third-homework-2"],
 };
 
-/*
 
-  تحويل homeworkData
+// Fallback من نفس الواجبات الحالية الموجودة على منصة درس خصوصي.
+// وجوده يمنع القائمة من أن تصبح فارغة لو homeworkCatalog لم يُنشأ بعد.
+const PLATFORM_HOMEWORK_FALLBACK = [
+  { id: "homework-1", title: "واجب المحاضرة الأولي", grade: "الثالث الثانوي", studentType: "center", centerOnly: true, legacyHomeworkIds: ["third-month-lesson-1-homework"] },
+  { id: "third-homework-2", title: "واجب المحاضرة الثانية", grade: "الثالث الثانوي", studentType: "center", centerOnly: true, legacyHomeworkIds: ["third-month-lesson-2-homework"] },
+  { id: "third-center-homework-3", title: "واجب المحاضرة الثالثة", grade: "الثالث الثانوي", studentType: "center", centerOnly: true },
+  { id: "third-homework-4", title: "واجب المحاضرة الرابعة", grade: "الثالث الثانوي", studentType: "center", centerOnly: true },
+  { id: "third-homework-5", title: "واجب المحاضرة الخامسة", grade: "الثالث الثانوي", studentType: "center", centerOnly: true },
+  { id: "third-homework-6", title: "واجب المحاضرة السادسة", grade: "الثالث الثانوي", studentType: "center", centerOnly: true },
 
-  إلى شكل مناسب للداشبورد
-
-*/
-
-const platformHomeworks =
-
-  Object.values(
-
-    platformHomeworkData || {}
-
-  ).map((homework) => {
-
-    const questions =
-
-      Array.isArray(
-
-        homework.questions
-
-      )
-
-        ? homework.questions
-
-        : [];
-
-    /*
-
-      السؤال الملغي لا يدخل
-
-      في الدرجة النهائية.
-
-    */
-
-    const totalScore =
-
-      questions.filter(
-
-        (question) =>
-
-          question?.cancelled !== true
-
-      ).length;
-
-    return {
-
-      ...homework,
-
-      id: homework.id,
-
-      legacyHomeworkIds:
-
-        LEGACY_HOMEWORK_IDS[
-
-          homework.id
-
-        ] || [],
-
-      title:
-
-        homework.title ||
-
-        "واجب بدون اسم",
-
-      courseId:
-
-        homework.courseId || "",
-
-      lessonId:
-
-        homework.lessonId || "",
-
-      grade:
-
-        homework.grade || "",
-
-      totalScore,
-
-      isPublished: true,
-
-      isPlatformHomework: true,
-
-      questions,
-
-    };
-
-  });
+  { id: "first-online-lesson-2-homework", title: "واجب المحاضرة الثانية", grade: "الأول الثانوي", studentType: "online", courseId: "first-month-course", lessonId: "lesson-2", videoOnly: true },
+  { id: "second-online-lesson-1-homework", title: "فيديو الواجب", grade: "الثاني الثانوي", studentType: "online", courseId: "second-month-course", lessonId: "lesson-1", videoOnly: true },
+  { id: "second-online-lesson-2-homework", title: "فيديو الواجب", grade: "الثاني الثانوي", studentType: "online", courseId: "second-month-course", lessonId: "lesson-2", videoOnly: true },
+  { id: "second-online-lesson-3-homework", title: "فيديو الواجب", grade: "الثاني الثانوي", studentType: "online", courseId: "second-month-course", lessonId: "lesson-3", videoOnly: true },
+  { id: "thirdLecture2Homework", title: "واجب المحاضرة الثانية", grade: "الثالث الثانوي", studentType: "online", courseId: "third-month-course", lessonId: "lesson-2" },
+  { id: "thirdLecture3Homework", title: "واجب المحاضرة الثالثة", grade: "الثالث الثانوي", studentType: "online", courseId: "third-month-course", lessonId: "lesson-3" },
+  { id: "thirdLecture4Homework", title: "واجب المحاضرة الرابعة", grade: "الثالث الثانوي", studentType: "online", courseId: "third-month-course", lessonId: "lesson-4" },
+  { id: "thirdLecture5Homework", title: "واجب المحاضرة الخامسة", grade: "الثالث الثانوي", studentType: "online", courseId: "third-month-course", lessonId: "lesson-5" },
+];
 
 const initialHomeworkData = {
 
@@ -227,6 +145,11 @@ function Homeworks() {
 
     setFirestoreHomeworks,
 
+  ] = useState([]);
+
+  const [
+    platformCatalog,
+    setPlatformCatalog,
   ] = useState([]);
 
   const [courses, setCourses] =
@@ -368,6 +291,22 @@ function Homeworks() {
   */
 
   useEffect(() => {
+
+    const unsubscribeCatalog = onSnapshot(
+      collection(db, "homeworkCatalog"),
+      (snapshot) => {
+        setPlatformCatalog(
+          snapshot.docs.map((item) => ({
+            id: item.id,
+            ...item.data(),
+            isPlatformHomework: true,
+          }))
+        );
+      },
+      (error) => {
+        console.error("Homework catalog error:", error);
+      }
+    );
 
     const unsubscribeHomeworks =
 
@@ -552,6 +491,8 @@ function Homeworks() {
       );
 
     return () => {
+
+      unsubscribeCatalog();
 
       unsubscribeHomeworks();
 
@@ -765,228 +706,74 @@ function Homeworks() {
 
   */
 
-  const homeworks =
+  const homeworks = useMemo(() => {
+    const result = PLATFORM_HOMEWORK_FALLBACK.map((homework) => ({
+      ...homework,
+      isPlatformHomework: true,
+    }));
 
-    useMemo(() => {
-
-      const result = [];
-
-      const addHomework = (homework) => {
-        if (!homework?.id) return;
-
-        const existingIndex = result.findIndex(
-          (item) => item.id === homework.id
-        );
-
-        if (existingIndex >= 0) {
-          const existing = result[existingIndex];
-          result[existingIndex] = {
-            ...homework,
-            ...existing,
-            audienceTypes: [
-              ...new Set([
-                ...(existing.audienceTypes || []),
-                ...(homework.audienceTypes || []),
-              ]),
-            ],
-          };
-          return;
-        }
-
-        result.push(homework);
+    // 1) Firebase هو المصدر الأعلى أولوية.
+    // لو نفس الواجب موجود في الـ fallback نستبدله بنسخة Firebase بدل تكراره.
+    platformCatalog.forEach((homework) => {
+      const normalized = {
+        ...homework,
+        legacyHomeworkIds: [
+          ...(homework.legacyHomeworkIds || []),
+          ...(LEGACY_HOMEWORK_IDS[homework.id] || []),
+        ],
+        studentType: homework.studentType || "center",
+        isPlatformHomework: true,
       };
 
-      /*
-        1) واجبات homeworkData هي المصدر الأساسي.
-      */
-      platformHomeworks.forEach((homework) => {
-        const homeworkType =
-          homework.centerOnly === true || homework.studentType === "center"
-            ? "center"
-            : homework.studentType === "online"
-              ? "online"
-              : "online";
+      const index = result.findIndex((item) => item.id === normalized.id);
+      if (index >= 0) result[index] = { ...result[index], ...normalized };
+      else result.push(normalized);
+    });
 
-        addHomework({
-          ...homework,
-          audienceTypes: [homeworkType],
+    // 2) واجبات الأونلاين: تأتي تلقائيًا من lessons داخل courses في Firebase.
+    courses.forEach((course) => {
+      const courseLessons = Array.isArray(course.lessons) ? course.lessons : [];
+
+      courseLessons.forEach((lesson, index) => {
+        if (lesson?.homeworkEnabled !== true) return;
+
+        const lessonId = lesson.id || `lesson-${index + 1}`;
+        const homeworkId =
+          lesson.homeworkKey ||
+          `${course.id}-${lessonId}-homework`;
+
+        result.push({
+          id: homeworkId,
+          title: lesson.homeworkTitle || `واجب ${lesson.title || `المحاضرة ${index + 1}`}`,
+          grade: course.grade || "",
+          courseId: course.id || "",
+          lessonId,
+          studentType: "online",
+          centerOnly: false,
+          videoOnly: lesson.homeworkVideoOnly === true,
+          homeworkKey: lesson.homeworkKey || "",
+          totalScore: Number(lesson.homeworkTotal || 0),
+          isPublished: course.isPublished !== false && lesson.isPublished !== false,
+          isPlatformHomework: true,
+          source: "platform-online-course",
         });
       });
+    });
 
-      /*
-
-        واجبات Firestore
-
-        لو نفس ID أو نفس
-
-        courseId + lessonId
-
-        لواجب منصة موجود
-
-        نتجاهله حتى لا يتكرر.
-
-      */
-
-      firestoreHomeworks.forEach(
-
-        (firestoreHomework) => {
-
-          const duplicate =
-
-            result.some(
-
-              (existingHomework) => {
-
-                if (
-
-                  existingHomework.id ===
-
-                  firestoreHomework.id
-
-                ) {
-
-                  return true;
-
-                }
-
-                if (
-
-                  existingHomework
-
-                    .isPlatformHomework &&
-
-                  existingHomework
-
-                    .courseId &&
-
-                  existingHomework
-
-                    .lessonId &&
-
-                  firestoreHomework
-
-                    .courseId &&
-
-                  firestoreHomework
-
-                    .lessonId &&
-
-                  existingHomework
-
-                    .courseId ===
-
-                    firestoreHomework
-
-                      .courseId &&
-
-                  existingHomework
-
-                    .lessonId ===
-
-                    firestoreHomework
-
-                      .lessonId
-
-                ) {
-
-                  return true;
-
-                }
-
-                return false;
-
-              }
-
-            );
-
-          if (!duplicate) {
-            const homeworkType =
-              firestoreHomework.centerOnly === true ||
-              firestoreHomework.studentType === "center"
-                ? "center"
-                : firestoreHomework.studentType === "online"
-                  ? "online"
-                  : "online";
-
-            addHomework({
-              ...firestoreHomework,
-              audienceTypes: [homeworkType],
-            });
-          }
-
-        }
-
+    // 3) واجبات قديمة/يدوية محفوظة في collection homeworks.
+    firestoreHomeworks.forEach((homework) => {
+      const duplicate = result.some((existing) =>
+        existing.id === homework.id ||
+        (existing.courseId && existing.lessonId &&
+         existing.courseId === homework.courseId &&
+         existing.lessonId === homework.lessonId)
       );
 
-      /*
-        3) اكتشاف أي واجب موجود فعليًا عند الطلاب.
-        ده يخلي الواجبات القديمة والجديدة تظهر حتى لو لم يكن لها document
-        مستقل داخل collection homeworks.
-      */
-      students.forEach((student) => {
-        const audienceType =
-          student?.studentType === "center" ? "center" : "online";
-        const studentGrade = normalizeGrade(student?.grade);
+      if (!duplicate) result.push(homework);
+    });
 
-        const savedResults = Array.isArray(student?.homeworkResults)
-          ? student.homeworkResults
-          : [];
-
-        savedResults.forEach((saved, index) => {
-          const savedId = saved?.homeworkId || saved?.id;
-          if (!savedId) return;
-
-          addHomework({
-            id: savedId,
-            title:
-              saved?.homeworkTitle ||
-              saved?.title ||
-              `واجب ${saved?.lessonTitle || saved?.lessonId || index + 1}`,
-            courseId: saved?.courseId || "",
-            lessonId: saved?.lessonId || "",
-            grade: saved?.grade || studentGrade,
-            studentType: audienceType,
-            centerOnly: audienceType === "center",
-            totalScore:
-              saved?.totalQuestions ?? saved?.totalScore ?? saved?.total ?? 0,
-            isPublished: true,
-            isDiscoveredHomework: true,
-            audienceTypes: [audienceType],
-          });
-        });
-
-        const attempts =
-          student?.homeworkAttempts && typeof student.homeworkAttempts === "object"
-            ? student.homeworkAttempts
-            : {};
-
-        Object.entries(attempts).forEach(([attemptKey, attempt]) => {
-          const savedId = attempt?.homeworkId || attempt?.id || attemptKey;
-          if (!savedId) return;
-
-          addHomework({
-            id: savedId,
-            title:
-              attempt?.homeworkTitle ||
-              attempt?.title ||
-              `واجب ${attempt?.lessonTitle || attempt?.lessonId || savedId}`,
-            courseId: attempt?.courseId || "",
-            lessonId: attempt?.lessonId || "",
-            grade: attempt?.grade || studentGrade,
-            studentType: audienceType,
-            centerOnly: audienceType === "center",
-            totalScore:
-              attempt?.totalQuestions ?? attempt?.totalScore ?? attempt?.total ?? 0,
-            isPublished: true,
-            isDiscoveredHomework: true,
-            audienceTypes: [audienceType],
-          });
-        });
-      });
-
-      return result;
-
-    }, [firestoreHomeworks, students]);
+    return result;
+  }, [platformCatalog, courses, firestoreHomeworks]);
 
   /*
 
@@ -1256,37 +1043,21 @@ function Homeworks() {
 
   */
 
-  const selectedHomework =
-
-    useMemo(() => {
-
-      return (
-
-        homeworks.find(
-
-          (homework) =>
-
-            homework.id ===
-
-            selectedHomeworkId
-
-        ) || null
-
-      );
-
-    }, [
-
-      homeworks,
-
-      selectedHomeworkId,
-
-    ]);
-
   /*
 
     =========================================================
 
-    الواجبات المناسبة للسنة
+    الواجبات المناسبة للفلاتر
+
+    مهم جدًا:
+
+    - لا نظهر قائمة الواجبات قبل اختيار السنة + النوع.
+
+    - لو نفس الواجب موجود بأكثر من ID قديم/جديد،
+      يظهر مرة واحدة فقط.
+
+    - عند التكرار نحتفظ بكل الـ IDs كـ aliases حتى
+      لا تضيع نتائج الطلاب القديمة.
 
     =========================================================
 
@@ -1296,102 +1067,249 @@ function Homeworks() {
 
     useMemo(() => {
 
-      return homeworks.filter(
+      if (!selectedGrade || !selectedHomeworkType) {
 
-        (homework) => {
+        return [];
 
-          const homeworkTypes =
-            Array.isArray(homework.audienceTypes) && homework.audienceTypes.length
-              ? homework.audienceTypes
-              : [
-                  homework.centerOnly === true || homework.studentType === "center"
-                    ? "center"
-                    : "online",
-                ];
+      }
 
-          const matchesType =
-            !selectedHomeworkType ||
-            homeworkTypes.includes(selectedHomeworkType);
+      const getHomeworkType = (homework) =>
 
-          if (!matchesType) {
+        homework.centerOnly === true ||
 
-            return false;
+        homework.studentType === "center"
 
-          }
+          ? "center"
 
-          if (!selectedGrade) {
+          : "online";
 
-            return true;
+      const getHomeworkGrade = (homework) => {
 
-          }
+        if (homework.grade) {
 
-          if (homework.grade) {
-
-            return (
-
-              normalizeGrade(
-
-                homework.grade
-
-              ) ===
-
-              normalizeGrade(
-
-                selectedGrade
-
-              )
-
-            );
-
-          }
-
-          /*
-
-            لو واجب Firestore
-
-            ومفيهوش grade
-
-            نشوف السنة من الكورس
-
-          */
-
-          const course =
-
-            courses.find(
-
-              (item) =>
-
-                item.id ===
-
-                homework.courseId
-
-            );
-
-          if (course?.grade) {
-
-            return (
-
-              normalizeGrade(
-
-                course.grade
-
-              ) ===
-
-              normalizeGrade(
-
-                selectedGrade
-
-              )
-
-            );
-
-          }
-
-          return true;
+          return normalizeGrade(homework.grade);
 
         }
 
-      );
+        const course = courses.find(
+
+          (item) => item.id === homework.courseId
+
+        );
+
+        if (course?.grade) {
+
+          return normalizeGrade(course.grade);
+
+        }
+
+        /* fallback للواجبات القديمة اللي مفيهاش grade */
+
+        const hint = normalizeText(
+
+          `${homework.courseId || ""} ${homework.title || ""}`
+
+        );
+
+        if (hint.includes("first") || hint.includes("أولى") || hint.includes("الاول") || hint.includes("الأول")) {
+
+          return "الأول الثانوي";
+
+        }
+
+        if (hint.includes("second") || hint.includes("تانية") || hint.includes("الثاني") || hint.includes("الثانى")) {
+
+          return "الثاني الثانوي";
+
+        }
+
+        if (hint.includes("third") || hint.includes("تالتة") || hint.includes("الثالث")) {
+
+          return "الثالث الثانوي";
+
+        }
+
+        return "";
+
+      };
+
+      const getHomeworkOrder = (homework) => {
+
+        const lessonId = String(homework.lessonId || "");
+
+        const lessonMatch = lessonId.match(/(\d+)/);
+
+        if (lessonMatch) {
+
+          return Number(lessonMatch[1]);
+
+        }
+
+        const title = normalizeText(homework.title);
+
+        const words = [
+
+          ["الأولى", 1], ["الاولى", 1], ["الأول", 1], ["الاول", 1],
+
+          ["الثانية", 2], ["الثاني", 2], ["الثانى", 2],
+
+          ["الثالثة", 3], ["الثالث", 3],
+
+          ["الرابعة", 4], ["الرابع", 4],
+
+          ["الخامسة", 5], ["الخامس", 5],
+
+          ["السادسة", 6], ["السادس", 6],
+
+          ["السابعة", 7], ["السابع", 7],
+
+          ["الثامنة", 8], ["الثامن", 8],
+
+          ["التاسعة", 9], ["التاسع", 9],
+
+          ["العاشرة", 10], ["العاشر", 10],
+
+        ];
+
+        for (const [word, number] of words) {
+
+          if (title.includes(word)) {
+
+            return number;
+
+          }
+
+        }
+
+        return 999;
+
+      };
+
+      const filtered = homeworks.filter((homework) => {
+
+        return (
+
+          getHomeworkType(homework) === selectedHomeworkType &&
+
+          getHomeworkGrade(homework) === normalizeGrade(selectedGrade)
+
+        );
+
+      });
+
+      const grouped = new Map();
+
+      filtered.forEach((homework) => {
+
+        /*
+          نفس الاسم داخل نفس السنة ونفس النوع = اختيار واحد فقط.
+          بنضم كل الـ IDs القديمة والجديدة مع بعض.
+        */
+
+        const key = normalizeText(homework.title);
+
+        const current = grouped.get(key);
+
+        const homeworkIds = getHomeworkIds(homework);
+
+        /*
+          عدد الطلاب اللي عندهم نتيجة/محاولة لهذا الـ ID.
+          لو فيه نسختين بنفس الاسم نفضل النسخة المستخدمة فعلًا.
+        */
+
+        const usageCount = students.reduce((count, student) => {
+
+          const result = getHomeworkResult(student, homework);
+
+          const { attempt } = getHomeworkAttempt(student, homework);
+
+          return count + (result || attempt ? 1 : 0);
+
+        }, 0);
+
+        if (!current) {
+
+          grouped.set(key, {
+
+            ...homework,
+
+            _usageCount: usageCount,
+
+            legacyHomeworkIds: [
+
+              ...new Set([
+
+                ...(homework.legacyHomeworkIds || []),
+
+                ...homeworkIds.filter((id) => id !== homework.id),
+
+              ]),
+
+            ],
+
+          });
+
+          return;
+
+        }
+
+        const mergedIds = [
+
+          ...getHomeworkIds(current),
+
+          ...homeworkIds,
+
+        ];
+
+        const preferred =
+
+          usageCount > (current._usageCount || 0)
+
+            ? homework
+
+            : current;
+
+        grouped.set(key, {
+
+          ...preferred,
+
+          _usageCount: Math.max(usageCount, current._usageCount || 0),
+
+          legacyHomeworkIds: [
+
+            ...new Set(
+
+              mergedIds.filter((id) => id && id !== preferred.id)
+
+            ),
+
+          ],
+
+        });
+
+      });
+
+      return [...grouped.values()].sort((a, b) => {
+
+        const orderDifference =
+
+          getHomeworkOrder(a) - getHomeworkOrder(b);
+
+        if (orderDifference !== 0) {
+
+          return orderDifference;
+
+        }
+
+        return String(a.title || "").localeCompare(
+
+          String(b.title || ""),
+
+          "ar"
+
+        );
+
+      });
 
     }, [
 
@@ -1402,6 +1320,30 @@ function Homeworks() {
       selectedHomeworkType,
 
       courses,
+
+      students,
+
+    ]);
+
+  const selectedHomework =
+
+    useMemo(() => {
+
+      return (
+
+        studentHomeworkOptions.find(
+
+          (homework) => homework.id === selectedHomeworkId
+
+        ) || null
+
+      );
+
+    }, [
+
+      studentHomeworkOptions,
+
+      selectedHomeworkId,
 
     ]);
 
@@ -5187,19 +5129,13 @@ function Homeworks() {
 
                   }
 
-                  onChange={(
+                  onChange={(event) => {
 
-                    event
+                    setSelectedGrade(event.target.value);
 
-                  ) =>
+                    setSelectedHomeworkId("");
 
-                    setSelectedGrade(
-
-                      event.target.value
-
-                    )
-
-                  }
+                  }}
 
                 >
 
@@ -5267,23 +5203,13 @@ function Homeworks() {
 
                 <select
 
-                  value={
+                  value={selectedHomeworkId}
 
-                    selectedHomeworkId
+                  disabled={!selectedGrade || !selectedHomeworkType}
 
-                  }
+                  onChange={(event) =>
 
-                  onChange={(
-
-                    event
-
-                  ) =>
-
-                    setSelectedHomeworkId(
-
-                      event.target.value
-
-                    )
+                    setSelectedHomeworkId(event.target.value)
 
                   }
 
@@ -5291,7 +5217,15 @@ function Homeworks() {
 
                   <option value="">
 
-                    اختاري واجب المحاضرة
+                    {!selectedGrade
+
+                      ? "اختاري السنة أولًا"
+
+                      : !selectedHomeworkType
+
+                      ? "اختاري نوع الواجب أولًا"
+
+                      : "اختاري واجب المحاضرة"}
 
                   </option>
 
