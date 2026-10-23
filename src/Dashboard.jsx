@@ -13,6 +13,7 @@ import {
   FaSignOutAlt,
   FaUserGraduate,
   FaLock,
+  FaPen,
 } from "react-icons/fa";
 
 import { auth } from "./firebase";
@@ -88,6 +89,13 @@ function Dashboard() {
         "إضافة الامتحانات والدرجات",
       icon: <FaFileAlt />,
       path: "/exams",
+    },
+    {
+      title: "تصحيح المقالي — امتحان الشامل",
+      description:
+        "مراجعة إجابات المقالي واعتماد درجات الطلاب وإعادة فتح المحاولة عند الحاجة",
+      icon: <FaPen />,
+      path: "/essay-grading",
     },
     {
       title: "الفواتير",

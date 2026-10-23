@@ -18,6 +18,7 @@ import Invoices from "./Invoices";
 import Codes from "./Codes";
 import Reports from "./Reports";
 import PasswordManagement from "./PasswordManagement";
+import ComprehensiveEssayGrading from "./ComprehensiveEssayGrading";
 
 import "./App.css";
 
@@ -120,6 +121,11 @@ function App() {
       <Route
         path="/exams"
         element={<Exams />}
+      />
+
+      <Route
+        path="/essay-grading"
+        element={<ComprehensiveEssayGrading />}
       />
 
       <Route
