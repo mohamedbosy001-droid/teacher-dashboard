@@ -14,6 +14,7 @@ import {
   FaUserGraduate,
   FaLock,
   FaPen,
+  FaEye,
 } from "react-icons/fa";
 
 import { auth } from "./firebase";
@@ -59,6 +60,13 @@ function Dashboard() {
         "البحث عن أي طالب ومتابعة النقاط والمشاهدات والدرجات طوال السنة",
       icon: <FaUserGraduate />,
       path: "/student-records",
+    },
+    {
+      title: "المشاهدة",
+      description:
+        "متابعة الفيديوهات اللي شاهدها كل طالب (محاضرات وواجبات) ومدة المشاهدة بالدقيقة والثانية",
+      icon: <FaEye />,
+      path: "/watch-tracking",
     },
 
     {

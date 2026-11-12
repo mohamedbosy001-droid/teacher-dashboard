@@ -11,6 +11,7 @@ import Courses from "./Courses";
 import Students from "./Students";
 import StudentRecords from "./StudentRecords";
 import StudentProfile from "./StudentProfile";
+import WatchTracking from "./WatchTracking";
 import Lessons from "./Lessons";
 import Homeworks from "./Homeworks";
 import Exams from "./Exams";
@@ -106,6 +107,11 @@ function App() {
       <Route
         path="/student-records/:studentId"
         element={<StudentProfile />}
+      />
+
+      <Route
+        path="/watch-tracking"
+        element={<WatchTracking />}
       />
 
       <Route
